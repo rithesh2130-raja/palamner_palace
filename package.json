@@ -1,0 +1,28 @@
+{
+  "name": "shopsphere-monorepo",
+  "version": "1.0.0",
+  "description": "ShopSphere — Social-Commerce Marketplace Architecture",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ],
+  "scripts": {
+    "setup": "npm install && npm --prefix server install && npm --prefix client install",
+    "dev": "npx concurrently -n \"SERVER,CLIENT\" -c \"cyan,yellow\" \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "client": "npm --prefix client run dev",
+    "server": "npm --prefix server run dev",
+    "build": "npm --prefix server run build && npm --prefix client run build",
+    "type-check": "npm --prefix server run type-check && npm --prefix client run type-check",
+    "lint": "npm --prefix server run lint && npm --prefix client run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prettier": "^3.2.5",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "vite": "^5.4.21"
+  }
+}
