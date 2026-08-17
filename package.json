@@ -1,7 +1,7 @@
 {
-  "name": "shopsphere-monorepo",
+  "name": "palamnerpalace",
   "version": "1.0.0",
-  "description": "ShopSphere — Social-Commerce Marketplace Architecture",
+  "description": "Palamner Palace — Full MERN Stack Social Commerce Marketplace",
   "private": true,
   "workspaces": [
     "client",
