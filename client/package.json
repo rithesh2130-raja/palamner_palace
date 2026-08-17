@@ -20,6 +20,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
+    "@babel/helper-compilation-targets": "^7.29.7",
+    "@babel/helper-validator-option": "^8.0.0",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
     "gensync": "^1.0.0-beta.2",
