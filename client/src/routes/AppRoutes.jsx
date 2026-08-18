@@ -3,7 +3,18 @@ import { Routes, Route } from 'react-router-dom';
 import { CustomerLayout } from '../components/layouts/CustomerLayout.jsx';
 import { CreatorLayout } from '../components/layouts/CreatorLayout.jsx';
 import { AdminLayout } from '../components/layouts/AdminLayout.jsx';
+
 import { HomePage } from '../pages/customer/HomePage.jsx';
+import { ProductsPage } from '../pages/customer/ProductsPage.jsx';
+import { ProductDetailsPage } from '../pages/customer/ProductDetailsPage.jsx';
+import { CategoriesPage } from '../pages/customer/CategoriesPage.jsx';
+import { DealsPage } from '../pages/customer/DealsPage.jsx';
+import { ReelsPage } from '../pages/customer/ReelsPage.jsx';
+import { CartPage } from '../pages/customer/CartPage.jsx';
+import { WishlistPage } from '../pages/customer/WishlistPage.jsx';
+import { OrdersPage } from '../pages/customer/OrdersPage.jsx';
+import { AccountPage } from '../pages/customer/AccountPage.jsx';
+import { NotFoundPage } from '../pages/customer/NotFoundPage.jsx';
 import { PlaceholderPage } from '../pages/common/PlaceholderPage.jsx';
 
 export const AppRoutes = () => {
@@ -12,16 +23,22 @@ export const AppRoutes = () => {
       {/* Customer Routes */}
       <Route path="/" element={<CustomerLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="login" element={<PlaceholderPage title="Customer Sign In" dayPlanned="Day 2" />} />
-        <Route path="register" element={<PlaceholderPage title="Account Registration" dayPlanned="Day 2" />} />
-        <Route path="reels" element={<PlaceholderPage title="Video Reels Feed" dayPlanned="Day 11-12" />} />
-        <Route path="search" element={<PlaceholderPage title="Product & Reel Search Engine" dayPlanned="Day 6" />} />
-        <Route path="product/:id" element={<PlaceholderPage title="Product Details & Reels" dayPlanned="Day 7" />} />
-        <Route path="cart" element={<PlaceholderPage title="Shopping Cart" dayPlanned="Day 8" />} />
-        <Route path="checkout" element={<PlaceholderPage title="Checkout Engine" dayPlanned="Day 9" />} />
-        <Route path="orders" element={<PlaceholderPage title="Orders & Tracking" dayPlanned="Day 10" />} />
-        <Route path="profile" element={<PlaceholderPage title="User Account Profile" dayPlanned="Day 2" />} />
-        <Route path="creator/:username" element={<PlaceholderPage title="Creator Profile Showcase" dayPlanned="Day 15" />} />
+        <Route path="products" element={<ProductsPage />} />
+        <Route path="products/:id" element={<ProductDetailsPage />} />
+        <Route path="product/:id" element={<ProductDetailsPage />} />
+        <Route path="categories" element={<CategoriesPage />} />
+        <Route path="categories/:category" element={<ProductsPage />} />
+        <Route path="deals" element={<DealsPage />} />
+        <Route path="reels" element={<ReelsPage />} />
+        <Route path="cart" element={<CartPage />} />
+        <Route path="wishlist" element={<WishlistPage />} />
+        <Route path="orders" element={<OrdersPage />} />
+        <Route path="account" element={<AccountPage />} />
+        <Route path="profile" element={<AccountPage />} />
+        <Route path="search" element={<ProductsPage />} />
+        <Route path="login" element={<AccountPage />} />
+        <Route path="register" element={<AccountPage />} />
+        <Route path="404" element={<NotFoundPage />} />
       </Route>
 
       {/* Creator Routes */}
@@ -43,7 +60,9 @@ export const AppRoutes = () => {
       </Route>
 
       {/* Fallback Catch-all Route */}
-      <Route path="*" element={<PlaceholderPage title="404 — Page Not Found" dayPlanned="N/A" />} />
+      <Route path="*" element={<CustomerLayout />}>
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
     </Routes>
   );
 };
