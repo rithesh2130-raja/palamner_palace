@@ -331,50 +331,72 @@ export const AdminCreateAdvertisementPage = () => {
               </div>
             ) : generatedAd ? (
               <div className="space-y-4">
-                <div className="relative aspect-[9/16] w-full max-w-[280px] mx-auto bg-black rounded-2xl overflow-hidden border-2 border-[#E50914] shadow-2xl group">
-                  {videoLoadError ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center space-y-2 bg-neutral-950 text-red-400">
-                      <AlertCircle className="w-8 h-8" />
-                      <div className="text-xs font-bold">Generated video could not be loaded.</div>
-                      <button
-                        onClick={() => setVideoLoadError(false)}
-                        className="px-3 py-1 bg-red-600 text-white rounded text-xs font-bold hover:bg-red-700"
+                {/* Quota Exceeded — show product image panel instead of unrelated fallback video */}
+                {isLocalFallback ? (
+                  <div className="relative aspect-[9/16] w-full max-w-[280px] mx-auto bg-black rounded-2xl overflow-hidden border-2 border-amber-500 shadow-2xl flex flex-col">
+                    {/* Product image fills top portion */}
+                    {posterSourceUrl && (
+                      <img
+                        src={posterSourceUrl}
+                        alt="Uploaded product reference"
+                        className="w-full h-[65%] object-contain bg-neutral-950"
+                      />
+                    )}
+                    {/* Quota error info panel at bottom */}
+                    <div className="flex-1 bg-amber-950/90 flex flex-col items-center justify-center p-4 text-center space-y-2">
+                      <AlertTriangle className="w-7 h-7 text-amber-400" />
+                      <div className="text-[11px] font-black text-amber-300 uppercase tracking-wider">
+                        Gemini API Quota Exceeded
+                      </div>
+                      <p className="text-[10px] text-amber-200 leading-relaxed">
+                        Free-tier 429 limit reached. No video was generated. Enable billing on your Gemini API key to generate a real product video.
+                      </p>
+                      <a
+                        href="https://aistudio.google.com/app/apikey"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 px-3 py-1 bg-amber-500 hover:bg-amber-400 text-black font-black text-[10px] rounded-lg uppercase tracking-wide"
                       >
-                        Retry
-                      </button>
+                        Enable Billing →
+                      </a>
                     </div>
-                  ) : (
-                    <video
-                      key={generatedAd.generationId || generatedAd._id || generatedAd.id}
-                      controls
-                      playsInline
-                      preload="metadata"
-                      muted
-                      src={videoSourceUrl}
-                      poster={posterSourceUrl}
-                      onError={(event) => {
-                        console.error('VIDEO PLAYBACK ERROR', event.currentTarget.error, event.currentTarget.src);
-                        setVideoLoadError(true);
-                      }}
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-
-                  <div className="absolute top-3 left-3 bg-[#E50914] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase pointer-events-none">
-                    VIDEO READY
+                    {/* Badge */}
+                    <div className="absolute top-3 left-3 bg-amber-500 text-black text-[10px] font-black px-2 py-0.5 rounded uppercase pointer-events-none">
+                      QUOTA EXCEEDED
+                    </div>
                   </div>
-                </div>
-
-                {/* Quota Limit Notice */}
-                {isLocalFallback && (
-                  <div className="p-3 bg-amber-950/60 border border-amber-600/80 rounded-xl space-y-1 text-left">
-                    <div className="flex items-center gap-1.5 text-amber-400 font-bold text-xs uppercase tracking-wider">
-                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>Gemini API Quota Notice (429 Limit)</span>
+                ) : (
+                  <div className="relative aspect-[9/16] w-full max-w-[280px] mx-auto bg-black rounded-2xl overflow-hidden border-2 border-[#E50914] shadow-2xl group">
+                    {videoLoadError ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center space-y-2 bg-neutral-950 text-red-400">
+                        <AlertCircle className="w-8 h-8" />
+                        <div className="text-xs font-bold">Generated video could not be loaded.</div>
+                        <button
+                          onClick={() => setVideoLoadError(false)}
+                          className="px-3 py-1 bg-red-600 text-white rounded text-xs font-bold hover:bg-red-700"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    ) : (
+                      <video
+                        key={generatedAd.generationId || generatedAd._id || generatedAd.id}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        muted
+                        src={videoSourceUrl}
+                        poster={posterSourceUrl}
+                        onError={(event) => {
+                          console.error('VIDEO PLAYBACK ERROR', event.currentTarget.error, event.currentTarget.src);
+                          setVideoLoadError(true);
+                        }}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <div className="absolute top-3 left-3 bg-[#E50914] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase pointer-events-none">
+                      VIDEO READY
                     </div>
-                    <p className="text-[11px] text-amber-200 leading-relaxed">
-                      Your free-tier Gemini API key has reached its 429 rate limit. The poster displays your uploaded product reference image. Add a billing-enabled Gemini API key to <code className="bg-black/60 px-1 py-0.5 rounded text-amber-300">server/.env</code> for live video rendering.
-                    </p>
                   </div>
                 )}
 
