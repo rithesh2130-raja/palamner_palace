@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Bookmark, ShoppingBag, Volume2, VolumeX, Play, Pause, Sparkles, Check, Star } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, ShoppingBag, Volume2, VolumeX, Play, Star, Sparkles, Check } from 'lucide-react';
 import { useCart } from '../../context/CartContext.jsx';
 import { useWishlist } from '../../context/WishlistContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
+import { getMediaUrl } from '../../utils/mediaUrl.js';
 import { MOCK_PRODUCTS } from '../../constants/mockProducts.js';
 
 export const ReelCard = ({ reel, isActive }) => {
@@ -19,7 +20,7 @@ export const ReelCard = ({ reel, isActive }) => {
   const videoRef = useRef(null);
 
   const { addToCart, cartItems } = useCart();
-  const { toggleWishlist, isInWishlist } = useWishlist();
+  const { toggleWishlist } = useWishlist();
   const { showToast } = useToast();
 
   const product = reel.product || reel.taggedProduct || MOCK_PRODUCTS.find(p => p.id === reel.taggedProduct?.id) || MOCK_PRODUCTS[0];
@@ -97,8 +98,11 @@ export const ReelCard = ({ reel, isActive }) => {
     }
   };
 
-  const posterSrc = reel.thumbnailUrl || reel.videoPoster || product?.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80';
-  const videoSrc = reel.videoUrl;
+  const rawPoster = reel.thumbnailUrl || reel.videoPoster || product?.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80';
+  const rawVideo = reel.videoUrl;
+
+  const posterSrc = getMediaUrl(rawPoster);
+  const videoSrc = getMediaUrl(rawVideo);
 
   return (
     <div
@@ -116,7 +120,10 @@ export const ReelCard = ({ reel, isActive }) => {
           playsInline
           preload="metadata"
           onLoadedData={() => setVideoLoaded(true)}
-          onError={() => setVideoError(true)}
+          onError={(e) => {
+            console.error('REEL VIDEO PLAYBACK ERROR', e.currentTarget.error, e.currentTarget.src);
+            setVideoError(true);
+          }}
           className="absolute inset-0 w-full h-full object-cover"
         />
       ) : (
@@ -134,7 +141,7 @@ export const ReelCard = ({ reel, isActive }) => {
       <div className="relative z-20 p-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <img
-            src={reel.creator?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+            src={getMediaUrl(reel.creator?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80')}
             alt={reel.creator?.name || 'PalamnerPalace'}
             className="w-9 h-9 rounded-full border-2 border-[#E50914] object-cover shadow"
           />
@@ -254,7 +261,7 @@ export const ReelCard = ({ reel, isActive }) => {
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <img
-                src={product.image}
+                src={getMediaUrl(product.image)}
                 alt={product.title}
                 className="w-12 h-12 rounded-lg object-cover border border-neutral-200 shrink-0"
               />

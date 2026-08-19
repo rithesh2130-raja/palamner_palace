@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { advertisementService } from '../../services/api/advertisementApi.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { Button } from '../../components/ui/Button.jsx';
-import { Sparkles, Wand2, Film, RefreshCw, ArrowLeft, Send, Upload, X, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { getMediaUrl } from '../../utils/mediaUrl.js';
+import { Sparkles, Wand2, Film, RefreshCw, ArrowLeft, Send, Upload, AlertCircle } from 'lucide-react';
 
 export const AdminCreateAdvertisementPage = () => {
   const navigate = useNavigate();
@@ -32,7 +33,6 @@ export const AdminCreateAdvertisementPage = () => {
   const [editInstruction, setEditInstruction] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
-  // Handle File Drag & Drop or Input Change
   const handleFileChange = (file) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -60,7 +60,6 @@ export const AdminCreateAdvertisementPage = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // PART 7 — FRONTEND GENERATION REQUEST
   const handleGenerateAd = async (e) => {
     if (e) e.preventDefault();
     if (!description.trim()) {
@@ -133,6 +132,9 @@ export const AdminCreateAdvertisementPage = () => {
     }
   };
 
+  const videoSourceUrl = generatedAd ? getMediaUrl(generatedAd.videoUrl) : '';
+  const posterSourceUrl = previewUrl || (generatedAd ? getMediaUrl(generatedAd.thumbnailUrl) : '');
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -159,7 +161,7 @@ export const AdminCreateAdvertisementPage = () => {
         {/* Left Column: Input Controls (7 cols) */}
         <div className="lg:col-span-7 bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl space-y-6">
           <form onSubmit={handleGenerateAd} className="space-y-5">
-            {/* PART 2 — UPLOAD REFERENCE IMAGE */}
+            {/* Upload Image Zone */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-white uppercase tracking-wider">
                 Upload Reference Image (Optional)
@@ -213,7 +215,7 @@ export const AdminCreateAdvertisementPage = () => {
               />
             </div>
 
-            {/* PART 4 — DESCRIPTION TEXTAREA */}
+            {/* Description Textarea */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-white uppercase tracking-wider">
                 Describe Your Advertisement
@@ -227,7 +229,7 @@ export const AdminCreateAdvertisementPage = () => {
               />
             </div>
 
-            {/* PART 5 — OPTIONAL SETTINGS */}
+            {/* Optional Settings */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-neutral-300">Visual Style</label>
@@ -269,7 +271,7 @@ export const AdminCreateAdvertisementPage = () => {
               </div>
             </div>
 
-            {/* PART 6 — GENERATE BUTTON */}
+            {/* Generate Button */}
             <Button
               type="submit"
               variant="primary"
@@ -291,7 +293,6 @@ export const AdminCreateAdvertisementPage = () => {
               <span>Video Preview (9:16)</span>
             </h3>
 
-            {/* PART 19 — GENERATION STATUS UI */}
             {isGenerating ? (
               <div className="w-full aspect-[9/16] bg-black rounded-2xl border border-neutral-800 flex flex-col items-center justify-center p-6 text-center space-y-4 animate-pulse">
                 <Wand2 className="w-10 h-10 text-[#E50914] animate-bounce" />
@@ -302,7 +303,6 @@ export const AdminCreateAdvertisementPage = () => {
                 </div>
               </div>
             ) : generationError ? (
-              /* Failure State */
               <div className="p-5 bg-red-950/80 border border-red-600 rounded-2xl space-y-3 text-left">
                 <div className="flex items-center gap-2 text-red-400 font-black text-xs uppercase tracking-wider">
                   <AlertCircle className="w-4 h-4" />
@@ -315,7 +315,6 @@ export const AdminCreateAdvertisementPage = () => {
                 </Button>
               </div>
             ) : generatedAd ? (
-              /* PART 21 — SUCCESS PREVIEW WITH REAL VIDEO */
               <div className="space-y-4">
                 <div className="relative aspect-[9/16] w-full max-w-[280px] mx-auto bg-black rounded-2xl overflow-hidden border-2 border-[#E50914] shadow-2xl group">
                   {videoLoadError ? (
@@ -324,7 +323,7 @@ export const AdminCreateAdvertisementPage = () => {
                       <div className="text-xs font-bold">Generated video could not be loaded.</div>
                       <button
                         onClick={() => setVideoLoadError(false)}
-                        className="px-3 py-1 bg-red-600 text-white rounded text-xs font-bold"
+                        className="px-3 py-1 bg-red-600 text-white rounded text-xs font-bold hover:bg-red-700"
                       >
                         Retry
                       </button>
@@ -335,9 +334,12 @@ export const AdminCreateAdvertisementPage = () => {
                       playsInline
                       preload="metadata"
                       muted
-                      src={generatedAd.videoUrl}
-                      poster={previewUrl || generatedAd.thumbnailUrl}
-                      onError={() => setVideoLoadError(true)}
+                      src={videoSourceUrl}
+                      poster={posterSourceUrl}
+                      onError={(event) => {
+                        console.error('VIDEO PLAYBACK ERROR', event.currentTarget.error, event.currentTarget.src);
+                        setVideoLoadError(true);
+                      }}
                       className="w-full h-full object-cover"
                     />
                   )}
@@ -368,7 +370,7 @@ export const AdminCreateAdvertisementPage = () => {
                   </div>
                 </div>
 
-                {/* PART 24 — ACTION BUTTONS (PUBLISH AS REEL) */}
+                {/* Action Buttons */}
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   <Button variant="outline" size="sm" onClick={handleGenerateAd}>
                     <RefreshCw className="w-3.5 h-3.5" />
