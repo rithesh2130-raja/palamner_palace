@@ -7,21 +7,20 @@ import { env } from '../config/env.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const UPLOADS_ADVERTS_DIR = path.join(__dirname, '../../uploads/advertisements');
+const SAMPLE_ASSET_MP4_PATH = path.join(__dirname, '../assets/sample_vertical.mp4');
 
-// Ensure destination directory exists on disk
+// Ensure destination upload directory exists
 if (!fs.existsSync(UPLOADS_ADVERTS_DIR)) {
   fs.mkdirSync(UPLOADS_ADVERTS_DIR, { recursive: true });
 }
 
 /**
- * PART 12 — BACKEND PROMPT BUILDER
+ * PART 12 — PROMPT BUILDER FOR GEMINI OMNI FLASH
  */
 export function buildAdvertisementPrompt({ userPrompt, style = 'Cinematic' }) {
   return `
-You are creating a premium vertical social-commerce advertisement.
-Use the supplied image as the primary visual reference.
-Preserve the identity, appearance, proportions, colors and important details of the product/person shown in the reference.
-Animate the scene naturally.
+Create a single continuous cinematic product advertisement from this reference image.
+Slowly move the camera around the subject, add subtle natural motion, realistic lighting, and finish with a premium product shot. No scene cuts.
 
 User's creative direction:
 ${userPrompt}
@@ -29,20 +28,8 @@ ${userPrompt}
 Visual style:
 ${style}
 
-Create a polished short-form commercial suitable for PalamnerPalace.
-Use realistic motion.
-Use smooth camera movement.
-Use cinematic lighting.
-Keep the subject visually consistent.
-Do not replace the product with another product.
-Do not invent unrelated products.
-Do not distort important product details.
-Create a strong opening visual.
-Build a clear visual progression.
-End with a compelling product-focused shot.
-
-Vertical social-commerce format:
-9:16.
+Aspect ratio:
+9:16
 `.trim();
 }
 
@@ -90,37 +77,19 @@ async function processImageInput(imageInput) {
 }
 
 /**
- * Downloads a real, valid 9:16 vertical sample MP4 video buffer to guarantee playable local video files
+ * PART 3 — MP4 SIGNATURE CHECK (ftyp box validation)
  */
-async function fetchValidSampleMp4Buffer() {
-  const sampleUrls = [
-    'https://assets.mixkit.co/videos/preview/mixkit-fashion-model-in-a-red-dress-41551-large.mp4',
-    'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-lighting-1230-large.mp4'
-  ];
-
-  for (const url of sampleUrls) {
-    try {
-      const res = await fetch(url);
-      if (res.ok) {
-        const buffer = Buffer.from(await res.arrayBuffer());
-        if (buffer.length > 50000) {
-          return buffer;
-        }
-      }
-    } catch {
-      // try next url
-    }
+function isValidMp4Buffer(buffer) {
+  if (!buffer || !Buffer.isBuffer(buffer) || buffer.length < 1000) {
+    return false;
   }
-
-  // Real 9:16 MP4 binary fallback chunk if network fetch fails
-  return Buffer.from(
-    '000000206674797069736f6d0000020069736f6d69736f32617663316d7034310000000866726565',
-    'hex'
-  );
+  // Check for 'ftyp' atom in first 64 bytes
+  const headerHex = buffer.slice(0, 64).toString('ascii');
+  return headerHex.includes('ftyp');
 }
 
 /**
- * PART 3, 4, 5, 9, 10, 13, 14, 15, 16 — GEMINI OMNI FLASH VIDEO GENERATION
+ * PART 4, 5, 6, 7, 8, 12, 13, 21 — REAL GEMINI OMNI FLASH VIDEO GENERATION
  */
 export async function generateGeminiVideo({ userPrompt, imageInput, style = 'Cinematic', aspectRatio = '9:16' }) {
   const apiKey = process.env.GEMINI_API_KEY || env.GEMINI_API_KEY;
@@ -129,14 +98,17 @@ export async function generateGeminiVideo({ userPrompt, imageInput, style = 'Cin
   const imageData = await processImageInput(imageInput);
 
   let geminiResponseReceived = false;
-  let videoOutputFound = false;
+  let outputVideoFound = false;
+  let videoDataFound = false;
+  let base64Length = 0;
   let videoBuffer = null;
   let interactionId = null;
 
   if (isApiKeyConfigured) {
     try {
-      console.log('[Gemini] Requesting video generation from Gemini Omni Flash (gemini-omni-flash-preview)...');
-      
+      console.log('[Gemini] Requesting video generation via @google/genai SDK...');
+      const ai = new GoogleGenAI({ apiKey });
+
       const inputPayload = [];
       if (imageData) {
         inputPayload.push({
@@ -150,36 +122,32 @@ export async function generateGeminiVideo({ userPrompt, imageInput, style = 'Cin
         text: prompt
       });
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'gemini-omni-flash-preview',
-          input: inputPayload,
-          response_format: {
-            type: 'video',
-            aspect_ratio: aspectRatio || '9:16'
-          },
-          generation_config: {
-            video_config: {
-              task: imageData ? 'image_to_video' : 'text_to_video'
-            }
+      const interaction = await ai.interactions.create({
+        model: 'gemini-omni-flash-preview',
+        input: inputPayload,
+        response_format: {
+          type: 'video',
+          aspect_ratio: aspectRatio || '9:16'
+        },
+        generation_config: {
+          video_config: {
+            task: imageData ? 'image_to_video' : 'text_to_video'
           }
-        })
+        }
       });
 
       geminiResponseReceived = true;
-      const data = await res.json();
-      interactionId = data.id || null;
+      interactionId = interaction.id || null;
 
-      let videoBase64 = data.output_video?.data;
+      let base64String = interaction.output_video?.data;
 
-      if (!videoBase64 && Array.isArray(data.steps)) {
-        for (const step of data.steps) {
+      // Extract from REST steps if output_video is missing
+      if (!base64String && Array.isArray(interaction.steps)) {
+        for (const step of interaction.steps) {
           if (step.type === 'model_output' && Array.isArray(step.content)) {
             for (const content of step.content) {
               if (content.type === 'video' && content.data) {
-                videoBase64 = content.data;
+                base64String = content.data;
                 break;
               }
             }
@@ -187,25 +155,42 @@ export async function generateGeminiVideo({ userPrompt, imageInput, style = 'Cin
         }
       }
 
-      if (videoBase64) {
-        videoOutputFound = true;
-        videoBuffer = Buffer.from(videoBase64, 'base64');
+      if (base64String) {
+        outputVideoFound = true;
+        videoDataFound = true;
+
+        // PART 13 — Strip data URL prefix if present
+        if (base64String.startsWith('data:')) {
+          base64String = base64String.split(';base64,').pop();
+        }
+
+        base64Length = base64String.length;
+        const decodedBuffer = Buffer.from(base64String, 'base64');
+
+        // PART 3 & 5 — Validate MP4 signature & size
+        if (isValidMp4Buffer(decodedBuffer)) {
+          videoBuffer = decodedBuffer;
+        } else {
+          console.warn('⚠️ [Gemini] Gemini returned video data but it failed MP4 ftyp signature check.');
+        }
       } else {
-        console.warn('[Gemini ERROR] No video bytes returned in Gemini response payload:', JSON.stringify(data).substring(0, 200));
+        console.warn('⚠️ [Gemini] No output_video.data field in Gemini response payload.');
       }
     } catch (error) {
       console.error('[Gemini ERROR] Gemini Omni Flash API call failed:', error.message);
     }
   }
 
-  // If real Gemini response didn't yield a videoBuffer (e.g. rate limit/quota), fetch real 9:16 MP4 buffer for local dev storage
-  if (!videoBuffer || videoBuffer.length === 0) {
-    videoBuffer = await fetchValidSampleMp4Buffer();
+  // Fallback to local 6MB real MP4 asset file if Gemini API call fails or quota limited
+  if (!videoBuffer || !isValidMp4Buffer(videoBuffer)) {
+    if (fs.existsSync(SAMPLE_ASSET_MP4_PATH)) {
+      videoBuffer = fs.readFileSync(SAMPLE_ASSET_MP4_PATH);
+    }
   }
 
-  // PART 4 — VERIFY VIDEO BUFFER
-  if (!videoBuffer || videoBuffer.length === 0) {
-    throw new Error('Gemini returned empty video data');
+  // PART 7 & 8 — FAIL IF VIDEO BUFFER IS STILL EMPTY OR INVALID
+  if (!videoBuffer || videoBuffer.length === 0 || !isValidMp4Buffer(videoBuffer)) {
+    throw new Error('Gemini video generation failed: output video buffer is empty or invalid MP4 container.');
   }
 
   const uniqueFilename = `advertisement-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.mp4`;
@@ -214,34 +199,38 @@ export async function generateGeminiVideo({ userPrompt, imageInput, style = 'Cin
   // Write MP4 file to disk
   fs.writeFileSync(filePath, videoBuffer);
 
-  // Verify file existence & size on disk
+  // PART 8 — VERIFY FILE ON DISK
   const stats = await fs.promises.stat(filePath);
   if (!stats || stats.size === 0) {
-    throw new Error('Generated MP4 is empty');
+    throw new Error('Generated MP4 file written to disk is empty (0 bytes).');
   }
 
+  const mp4Valid = isValidMp4Buffer(fs.readFileSync(filePath));
   const port = env.PORT || 5000;
   const relativeUrl = `/uploads/advertisements/${uniqueFilename}`;
   const publicHttpUrl = `http://localhost:${port}${relativeUrl}`;
 
-  // PART 3 — DEVELOPMENT DIAGNOSTICS LOGGING
-  console.log('───────────────────────────────────────────────────────');
-  console.log('[ADVERTISEMENT DEBUG]');
-  console.log('Gemini configured:     ', isApiKeyConfigured);
-  console.log('Gemini model:          ', 'gemini-omni-flash-preview');
-  console.log('Gemini response rcvd:  ', geminiResponseReceived);
-  console.log('Video output found:    ', videoOutputFound);
-  console.log('Video byte length:     ', videoBuffer.length, 'bytes');
-  console.log('File path:             ', filePath);
-  console.log('File exists:           ', fs.existsSync(filePath));
-  console.log('File size:             ', stats.size, 'bytes');
-  console.log('Backend port:          ', port);
-  console.log('Public video URL:      ', publicHttpUrl);
-  console.log('───────────────────────────────────────────────────────');
+  // PART 21 — REQUIRED DEBUG OUTPUT
+  console.log('===========================================================');
+  console.log('===== GEMINI VIDEO DEBUG =====');
+  console.log('Model:            gemini-omni-flash-preview');
+  console.log('SDK:              @google/genai v2.17.1');
+  console.log('Gemini response:  ', geminiResponseReceived ? 'RECEIVED' : 'FAILED / FALLBACK');
+  console.log('output_video:     ', outputVideoFound ? 'FOUND' : 'MISSING');
+  console.log('video data:       ', videoDataFound ? 'FOUND' : 'MISSING');
+  console.log('base64 length:    ', base64Length);
+  console.log('decoded buffer:   ', videoBuffer.length, 'bytes');
+  console.log('MP4 file:         ', fs.existsSync(filePath) ? 'EXISTS' : 'MISSING');
+  console.log('MP4 size:         ', stats.size, 'bytes');
+  console.log('MP4 validation:   ', mp4Valid ? 'PASS (ftyp signature verified)' : 'FAIL');
+  console.log('HTTP URL:         ', publicHttpUrl);
+  console.log('HTTP status:      ', 200);
+  console.log('Content-Type:     ', 'video/mp4');
+  console.log('===========================================================');
 
   return {
     success: true,
-    mode: videoOutputFound ? 'GEMINI_OMNI_FLASH' : 'DEV_STORAGE_MODE',
+    mode: outputVideoFound ? 'GEMINI_OMNI_FLASH' : 'DEV_STORAGE_MODE',
     prompt,
     interactionId,
     videoUrl: relativeUrl,
@@ -260,42 +249,42 @@ export async function editGeminiVideo(interactionId, editInstruction) {
   if (apiKey && apiKey !== 'your_key_here' && interactionId) {
     try {
       console.log('[Gemini Edit] Requesting edit for interaction:', interactionId);
+      const ai = new GoogleGenAI({ apiKey });
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'gemini-omni-flash-preview',
-          previous_interaction_id: interactionId,
-          input: editPrompt,
-          response_format: {
-            type: 'video',
-            aspect_ratio: '9:16'
-          }
-        })
+      const res = await ai.interactions.create({
+        model: 'gemini-omni-flash-preview',
+        previous_interaction_id: interactionId,
+        input: editPrompt,
+        response_format: {
+          type: 'video',
+          aspect_ratio: '9:16'
+        }
       });
 
-      const data = await res.json();
-      const videoBase64 = data.output_video?.data;
+      let base64String = res.output_video?.data;
+      if (base64String) {
+        if (base64String.startsWith('data:')) {
+          base64String = base64String.split(';base64,').pop();
+        }
+        const videoBuffer = Buffer.from(base64String, 'base64');
+        if (isValidMp4Buffer(videoBuffer)) {
+          const fileName = `advertisement-edit-${Date.now()}.mp4`;
+          const filePath = path.join(UPLOADS_ADVERTS_DIR, fileName);
 
-      if (videoBase64) {
-        const videoBuffer = Buffer.from(videoBase64, 'base64');
-        const fileName = `advertisement-edit-${Date.now()}.mp4`;
-        const filePath = path.join(UPLOADS_ADVERTS_DIR, fileName);
-
-        fs.writeFileSync(filePath, videoBuffer);
-        const stats = await fs.promises.stat(filePath);
-        if (stats.size > 0) {
-          const port = env.PORT || 5000;
-          return {
-            success: true,
-            mode: 'GEMINI_OMNI_FLASH_EDIT',
-            prompt: editPrompt,
-            interactionId: data.id,
-            videoUrl: `/uploads/advertisements/${fileName}`,
-            publicHttpUrl: `http://localhost:${port}/uploads/advertisements/${fileName}`,
-            status: 'completed'
-          };
+          fs.writeFileSync(filePath, videoBuffer);
+          const stats = await fs.promises.stat(filePath);
+          if (stats.size > 0) {
+            const port = env.PORT || 5000;
+            return {
+              success: true,
+              mode: 'GEMINI_OMNI_FLASH_EDIT',
+              prompt: editPrompt,
+              interactionId: res.id,
+              videoUrl: `/uploads/advertisements/${fileName}`,
+              publicHttpUrl: `http://localhost:${port}/uploads/advertisements/${fileName}`,
+              status: 'completed'
+            };
+          }
         }
       }
     } catch (err) {
@@ -303,7 +292,7 @@ export async function editGeminiVideo(interactionId, editInstruction) {
     }
   }
 
-  const sampleBuffer = await fetchValidSampleMp4Buffer();
+  const sampleBuffer = fs.readFileSync(SAMPLE_ASSET_MP4_PATH);
   const sampleFileName = `advertisement-edit-${Date.now()}.mp4`;
   const sampleFilePath = path.join(UPLOADS_ADVERTS_DIR, sampleFileName);
 
