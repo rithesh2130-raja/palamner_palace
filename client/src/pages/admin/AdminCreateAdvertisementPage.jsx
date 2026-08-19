@@ -4,7 +4,7 @@ import { advertisementService } from '../../services/api/advertisementApi.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { getMediaUrl } from '../../utils/mediaUrl.js';
-import { Sparkles, Wand2, Film, RefreshCw, ArrowLeft, Send, Upload, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Sparkles, Wand2, Film, RefreshCw, ArrowLeft, Send, Upload, AlertCircle, ShieldCheck, AlertTriangle } from 'lucide-react';
 
 export const AdminCreateAdvertisementPage = () => {
   const navigate = useNavigate();
@@ -32,7 +32,6 @@ export const AdminCreateAdvertisementPage = () => {
   const [editInstruction, setEditInstruction] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
-  // PART 11 & 17 — RESET ALL PREVIOUS GENERATION STATE ON NEW IMAGE SELECT
   const handleFileChange = (file) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -40,7 +39,6 @@ export const AdminCreateAdvertisementPage = () => {
       return;
     }
 
-    // Reset previous video and ad state completely
     setGeneratedAd(null);
     setGenerationError(null);
     setVideoLoadError(false);
@@ -70,7 +68,6 @@ export const AdminCreateAdvertisementPage = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // PART 10 & 26 — FRONTEND GENERATION REQUEST & SUCCESS CONDITION
   const handleGenerateAd = async (e) => {
     if (e) e.preventDefault();
 
@@ -84,7 +81,6 @@ export const AdminCreateAdvertisementPage = () => {
       return;
     }
 
-    // Clear stale state immediately
     setGeneratedAd(null);
     setGenerationError(null);
     setVideoLoadError(false);
@@ -153,13 +149,18 @@ export const AdminCreateAdvertisementPage = () => {
     }
   };
 
-  // PART 13 — CACHE BUSTING & MEDIA URL
   const rawVideoUrl = generatedAd ? getMediaUrl(generatedAd.videoUrl) : '';
   const videoSourceUrl = generatedAd
     ? `${rawVideoUrl}?generation=${generatedAd.generationId || generatedAd._id || Date.now()}`
     : '';
 
-  const posterSourceUrl = previewUrl || (generatedAd ? getMediaUrl(generatedAd.thumbnailUrl) : '');
+  const posterSourceUrl = previewUrl || (generatedAd ? getMediaUrl(generatedAd.thumbnailUrl || generatedAd.uploadedImageUrl) : '');
+
+  const isLocalFallback = generatedAd && (
+    generatedAd.isRealGeminiOutput === false ||
+    generatedAd.quotaErrorOccurred === true ||
+    (generatedAd.geminiInteractionId && generatedAd.geminiInteractionId.startsWith('local-'))
+  );
 
   return (
     <div className="space-y-6">
@@ -330,7 +331,6 @@ export const AdminCreateAdvertisementPage = () => {
               </div>
             ) : generatedAd ? (
               <div className="space-y-4">
-                {/* PART 12 — UNIQUE REACT KEY TO FORCE REMOUNTING ON NEW GENERATION */}
                 <div className="relative aspect-[9/16] w-full max-w-[280px] mx-auto bg-black rounded-2xl overflow-hidden border-2 border-[#E50914] shadow-2xl group">
                   {videoLoadError ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center space-y-2 bg-neutral-950 text-red-400">
@@ -365,7 +365,20 @@ export const AdminCreateAdvertisementPage = () => {
                   </div>
                 </div>
 
-                {/* PART 25 — GENERATION DEBUG PANEL */}
+                {/* Quota Limit Notice */}
+                {isLocalFallback && (
+                  <div className="p-3 bg-amber-950/60 border border-amber-600/80 rounded-xl space-y-1 text-left">
+                    <div className="flex items-center gap-1.5 text-amber-400 font-bold text-xs uppercase tracking-wider">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>Gemini API Quota Notice (429 Limit)</span>
+                    </div>
+                    <p className="text-[11px] text-amber-200 leading-relaxed">
+                      Your free-tier Gemini API key has reached its 429 rate limit. The poster displays your uploaded product reference image. Add a billing-enabled Gemini API key to <code className="bg-black/60 px-1 py-0.5 rounded text-amber-300">server/.env</code> for live video rendering.
+                    </p>
+                  </div>
+                )}
+
+                {/* GENERATION DEBUG PANEL */}
                 <div className="p-3 bg-black border border-neutral-800 rounded-xl space-y-1 text-[11px] text-neutral-400 font-mono">
                   <div className="text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-1 mb-1">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />

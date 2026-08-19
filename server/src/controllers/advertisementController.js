@@ -22,7 +22,7 @@ if (!fs.existsSync(UPLOADS_REFS_DIR)) {
 let memoryAdvertisements = [];
 
 /**
- * PART 33 — DIAGNOSTIC HEALTH ENDPOINT
+ * DIAGNOSTIC HEALTH ENDPOINT
  */
 export const getHealthStatus = (req, res) => {
   const apiKey = process.env.GEMINI_API_KEY || env.GEMINI_API_KEY;
@@ -35,11 +35,10 @@ export const getHealthStatus = (req, res) => {
 };
 
 /**
- * PART 1, 2, 8, 9, 10, 18 — GENERATE ADVERTISEMENT VIDEO (UNIQUE GENERATION ID & NEW MONGO RECORD)
+ * GENERATE ADVERTISEMENT VIDEO
  */
 export const generateAdvertisement = async (req, res, next) => {
   try {
-    // PART 1 — UNIQUE GENERATION ID PER REQUEST
     const generationId = crypto.randomUUID();
     const userPrompt = req.body.prompt || req.body.description || 'Animate the supplied product image into a single continuous product video. Keep the exact product visible throughout.';
     const style = req.body.style || req.body.visualStyle || 'Cinematic';
@@ -60,7 +59,6 @@ export const generateAdvertisement = async (req, res, next) => {
       });
     }
 
-    // PART 2 — HASH UPLOADED IMAGE
     const inputImageHash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
     const ext = path.extname(req.file.originalname) || '.jpg';
     const refFileName = `ref-${generationId}${ext}`;
@@ -89,6 +87,8 @@ export const generateAdvertisement = async (req, res, next) => {
     const adData = {
       generationId,
       geminiInteractionId: geminiResult.geminiInteractionId || null,
+      isRealGeminiOutput: geminiResult.isRealGeminiOutput || false,
+      quotaErrorOccurred: geminiResult.quotaErrorOccurred || false,
       inputImageHash,
       videoHash: geminiResult.videoHash,
       prompt: userPrompt,
@@ -98,11 +98,10 @@ export const generateAdvertisement = async (req, res, next) => {
       createdBy: req.user?.name || 'Admin',
       status: 'completed',
       videoUrl: geminiResult.videoUrl,
-      thumbnailUrl: uploadedImageUrl,
+      thumbnailUrl: geminiResult.thumbnailUrl || uploadedImageUrl,
       publishedAsReel: false
     };
 
-    // PART 8 & 18 — CREATE A BRAND NEW DATABASE RECORD (NEVER UPDATE OLD RECORD)
     let newAd;
     try {
       newAd = await Advertisement.create(adData);
@@ -116,7 +115,6 @@ export const generateAdvertisement = async (req, res, next) => {
       memoryAdvertisements.unshift(newAd);
     }
 
-    // PART 9 — VERIFY LOGGED MONGO DATA
     console.log('[Database Record Saved]', {
       generationId: newAd.generationId,
       advertisementId: newAd._id || newAd.id,
@@ -126,7 +124,6 @@ export const generateAdvertisement = async (req, res, next) => {
       videoUrl: newAd.videoUrl
     });
 
-    // PART 10 — RETURN NEW RECORD
     res.status(201).json({
       success: true,
       message: 'AI Advertisement video generated successfully!',
@@ -181,9 +178,6 @@ export const getAdvertisementById = async (req, res, next) => {
   }
 };
 
-/**
- * PART 17 — CONVERSATIONAL AI EDITING (USES PREVIOUS INTERACTION ID)
- */
 export const editAdvertisement = async (req, res, next) => {
   try {
     const { id } = req.params;

@@ -9,11 +9,15 @@ import sharp from 'sharp';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const UPLOADS_ADVERTS_DIR = path.join(__dirname, '../../uploads/advertisements');
+const UPLOADS_REFS_DIR = path.join(__dirname, '../../uploads/references');
 const UPLOADS_DEBUG_DIR = path.join(__dirname, '../../uploads/debug');
 const VALID_MP4_TEMPLATE_PATH = path.join(__dirname, '../assets/valid_916_template.mp4');
 
 if (!fs.existsSync(UPLOADS_ADVERTS_DIR)) {
   fs.mkdirSync(UPLOADS_ADVERTS_DIR, { recursive: true });
+}
+if (!fs.existsSync(UPLOADS_REFS_DIR)) {
+  fs.mkdirSync(UPLOADS_REFS_DIR, { recursive: true });
 }
 if (!fs.existsSync(UPLOADS_DEBUG_DIR)) {
   fs.mkdirSync(UPLOADS_DEBUG_DIR, { recursive: true });
@@ -93,6 +97,41 @@ async function processImageInput(imageInput) {
 }
 
 /**
+ * Creates a 9:16 vertical product composite image using sharp from the uploaded product image
+ */
+export async function createVerticalProductComposite(imageBuffer, generationId) {
+  if (!imageBuffer) return null;
+  try {
+    const resizedProduct = await sharp(imageBuffer)
+      .resize(640, 850, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .toBuffer();
+
+    const verticalCanvas = await sharp({
+      create: {
+        width: 720,
+        height: 1280,
+        channels: 4,
+        background: { r: 18, g: 18, b: 24, alpha: 1 }
+      }
+    })
+    .composite([
+      { input: resizedProduct, top: 215, left: 40 }
+    ])
+    .jpeg({ quality: 90 })
+    .toBuffer();
+
+    const posterFileName = `ref-poster-${generationId}.jpg`;
+    const posterFilePath = path.join(UPLOADS_REFS_DIR, posterFileName);
+    fs.writeFileSync(posterFilePath, verticalCanvas);
+
+    return `/uploads/references/${posterFileName}`;
+  } catch (err) {
+    console.warn('⚠️ [Sharp] Poster composite warning:', err.message);
+    return null;
+  }
+}
+
+/**
  * Validates MP4 container ftyp box signature in buffer
  */
 function isValidMp4Buffer(buffer) {
@@ -120,6 +159,9 @@ export async function generateGeminiVideo({ generationId, userPrompt, imageInput
   const debugFilePath = path.join(UPLOADS_DEBUG_DIR, `debug-input-${generationId}.jpg`);
   fs.writeFileSync(debugFilePath, imageData.buffer);
 
+  // Generate a 9:16 vertical product composite poster from the uploaded product image
+  const compositePosterUrl = await createVerticalProductComposite(imageData.buffer, generationId);
+
   console.log('===========================================================');
   console.log('===== ADVERTISEMENT GENERATION START =====');
   console.log('generationId:       ', generationId);
@@ -128,11 +170,14 @@ export async function generateGeminiVideo({ generationId, userPrompt, imageInput
   console.log('inputImageSize:     ', `${imageData.bytes} bytes`);
   console.log('inputImageHash:     ', imageData.hash);
   console.log('debugFile:          ', debugFilePath);
+  console.log('compositePoster:    ', compositePosterUrl);
   console.log('finalPrompt:        ', prompt.substring(0, 180) + '...');
   console.log('===========================================================');
 
   let videoBuffer = null;
   let geminiInteractionId = null;
+  let isRealGeminiOutput = false;
+  let quotaErrorOccurred = false;
 
   if (isApiKeyConfigured) {
     try {
@@ -183,26 +228,28 @@ export async function generateGeminiVideo({ generationId, userPrompt, imageInput
         const decoded = Buffer.from(base64String, 'base64');
         if (isValidMp4Buffer(decoded)) {
           videoBuffer = decoded;
+          isRealGeminiOutput = true;
         }
       }
     } catch (error) {
       console.error('[Gemini Notice] Gemini API call returned notice/quota limit:', error.message);
+      if (error.message.includes('429') || error.message.includes('quota')) {
+        quotaErrorOccurred = true;
+      }
     }
   }
 
   const uniqueFilename = `advertisement-${generationId}.mp4`;
   const filePath = path.join(UPLOADS_ADVERTS_DIR, uniqueFilename);
 
-  // If valid Gemini output video received, write it. Otherwise load 1.12 MB valid H.264 MP4 asset file.
   if (videoBuffer && isValidMp4Buffer(videoBuffer)) {
     fs.writeFileSync(filePath, videoBuffer);
   } else {
-    console.log('[Product Generator] Serving 1.12 MB valid H.264 9:16 MP4 video asset...');
     if (fs.existsSync(VALID_MP4_TEMPLATE_PATH)) {
       videoBuffer = fs.readFileSync(VALID_MP4_TEMPLATE_PATH);
       fs.writeFileSync(filePath, videoBuffer);
     } else {
-      throw new Error('Valid H.264 MP4 template asset missing on server.');
+      throw new Error('Valid MP4 template asset missing on server.');
     }
   }
 
@@ -217,21 +264,23 @@ export async function generateGeminiVideo({ generationId, userPrompt, imageInput
   console.log('generationId:       ', generationId);
   console.log('inputImageHash:     ', imageData.hash);
   console.log('geminiInteractionId:', geminiInteractionId || `local-${generationId}`);
+  console.log('isRealGeminiOutput: ', isRealGeminiOutput);
+  console.log('quotaErrorOccurred: ', quotaErrorOccurred);
   console.log('videoHash:          ', savedHash);
-  console.log('savedFileHash:      ', savedHash);
-  console.log('videoBytes:         ', savedBuffer.length, 'bytes');
   console.log('videoUrl:           ', relativeUrl);
-  console.log('publicHttpUrl:      ', publicHttpUrl);
   console.log('===========================================================');
 
   return {
     success: true,
     generationId,
     geminiInteractionId: geminiInteractionId || `local-${generationId}`,
+    isRealGeminiOutput,
+    quotaErrorOccurred,
     inputImageHash: imageData.hash,
     videoHash: savedHash,
     prompt,
     videoUrl: relativeUrl,
+    thumbnailUrl: compositePosterUrl || null,
     publicHttpUrl,
     status: 'completed'
   };
