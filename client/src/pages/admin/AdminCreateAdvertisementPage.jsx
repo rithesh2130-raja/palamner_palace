@@ -407,7 +407,7 @@ export const AdminCreateAdvertisementPage = () => {
                     <span>GENERATION DEBUG</span>
                   </div>
                   <div className="truncate"><span className="text-neutral-500">Generation ID:</span> <span className="text-emerald-400 font-bold">{generatedAd.generationId || 'N/A'}</span></div>
-                  <div className="truncate"><span className="text-neutral-500">Gemini Interaction:</span> <span className="text-white">{generatedAd.geminiInteractionId || 'N/A'}</span></div>
+                  <div className="truncate"><span className="text-neutral-500">fal.ai Request ID:</span> <span className="text-white">{generatedAd.geminiInteractionId || 'N/A'}</span></div>
                   <div className="truncate"><span className="text-neutral-500">Input Image Hash:</span> <span className="text-amber-400">{generatedAd.inputImageHash ? generatedAd.inputImageHash.substring(0, 16) + '...' : 'N/A'}</span></div>
                   <div className="truncate"><span className="text-neutral-500">Video Hash:</span> <span className="text-cyan-400">{generatedAd.videoHash ? generatedAd.videoHash.substring(0, 16) + '...' : 'N/A'}</span></div>
                   <div className="truncate"><span className="text-neutral-500">Video URL:</span> <span className="text-neutral-300">{generatedAd.videoUrl}</span></div>

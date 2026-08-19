@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { Advertisement } from '../models/Advertisement.js';
 import { Reel } from '../models/Reel.js';
-import { generateGeminiVideo, editGeminiVideo } from '../services/geminiVideoService.js';
+import { generateFalVideo } from '../services/falVideoService.js';
 import { env } from '../config/env.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -75,30 +75,29 @@ export const generateAdvertisement = async (req, res, next) => {
     console.log('inputImageSize:  ', req.file.size, 'bytes');
     console.log('===========================================================');
 
-    // Execute Gemini Omni Video Service Generation
-    const geminiResult = await generateGeminiVideo({
+    // Execute fal.ai Wan 2.6 Video Generation
+    const falResult = await generateFalVideo({
       generationId,
       userPrompt,
       imageInput: req.file,
-      style,
-      aspectRatio
+      style
     });
 
     const adData = {
       generationId,
-      geminiInteractionId: geminiResult.geminiInteractionId || null,
-      isRealGeminiOutput: geminiResult.isRealGeminiOutput || false,
-      quotaErrorOccurred: geminiResult.quotaErrorOccurred || false,
+      geminiInteractionId: falResult.falRequestId || null,
+      isRealGeminiOutput: falResult.isRealFalOutput || false,
+      quotaErrorOccurred: falResult.quotaErrorOccurred || false,
       inputImageHash,
-      videoHash: geminiResult.videoHash,
+      videoHash: falResult.videoHash,
       prompt: userPrompt,
       style,
       aspectRatio,
       uploadedImageUrl,
       createdBy: req.user?.name || 'Admin',
       status: 'completed',
-      videoUrl: geminiResult.videoUrl,
-      thumbnailUrl: geminiResult.thumbnailUrl || uploadedImageUrl,
+      videoUrl: falResult.videoUrl,
+      thumbnailUrl: falResult.thumbnailUrl || uploadedImageUrl,
       publishedAsReel: false
     };
 
