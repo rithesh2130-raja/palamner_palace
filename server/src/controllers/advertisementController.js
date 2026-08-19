@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { Advertisement } from '../models/Advertisement.js';
 import { Reel } from '../models/Reel.js';
@@ -9,12 +10,16 @@ import { env } from '../config/env.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const UPLOADS_ADVERTS_DIR = path.join(__dirname, '../../uploads/advertisements');
+const UPLOADS_REFS_DIR = path.join(__dirname, '../../uploads/references');
 
+// Ensure destination directories exist
 if (!fs.existsSync(UPLOADS_ADVERTS_DIR)) {
   fs.mkdirSync(UPLOADS_ADVERTS_DIR, { recursive: true });
 }
+if (!fs.existsSync(UPLOADS_REFS_DIR)) {
+  fs.mkdirSync(UPLOADS_REFS_DIR, { recursive: true });
+}
 
-// In-memory fallback dataset for development
 let memoryAdvertisements = [];
 
 /**
@@ -31,7 +36,7 @@ export const getHealthStatus = (req, res) => {
 };
 
 /**
- * PART 7, 8, 10 — GENERATE ADVERTISEMENT VIDEO (MULTIPART UPLOAD)
+ * PART 5, 6, 7, 11, 14, 15 — GENERATE ADVERTISEMENT VIDEO (MULTIPART UPLOAD)
  */
 export const generateAdvertisement = async (req, res, next) => {
   try {
@@ -42,28 +47,50 @@ export const generateAdvertisement = async (req, res, next) => {
 
     let imageInput = null;
     let uploadedImageUrl = null;
+    let imageHash = null;
 
-    // Handle Multer uploaded file
+    // PART 5 & 6 — BACKEND UPLOAD VALIDATION & DIAGNOSTICS
     if (req.file) {
+      const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedMimes.includes(req.file.mimetype) || req.file.size === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid product/reference image (JPEG, PNG, WEBP) is required.'
+        });
+      }
+
       const ext = path.extname(req.file.originalname) || '.jpg';
-      const savedFileName = `ref-image-${Date.now()}${ext}`;
-      const savedFilePath = path.join(UPLOADS_ADVERTS_DIR, savedFileName);
-      
-      fs.writeFileSync(savedFilePath, req.file.buffer);
-      uploadedImageUrl = `/uploads/advertisements/${savedFileName}`;
+      const refFileName = `ref-${Date.now()}-${Math.random().toString(36).substring(2, 6)}${ext}`;
+      const refFilePath = path.join(UPLOADS_REFS_DIR, refFileName);
+
+      fs.writeFileSync(refFilePath, req.file.buffer);
+      uploadedImageUrl = `/uploads/references/${refFileName}`;
       imageInput = req.file;
+
+      // Calculate SHA-256 hash for image identity verification
+      imageHash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+
+      console.log('───────────────────────────────────────────────────────');
+      console.log('[UPLOAD DIAGNOSTICS]');
+      console.log('Uploaded file:  ', req.file.originalname);
+      console.log('MIME:           ', req.file.mimetype);
+      console.log('Size:           ', req.file.size, 'bytes');
+      console.log('Saved path:     ', refFilePath);
+      console.log('Image SHA-256:  ', imageHash);
+      console.log('───────────────────────────────────────────────────────');
     } else if (req.body.image || req.body.imageUrl) {
       imageInput = req.body.image || req.body.imageUrl;
       uploadedImageUrl = typeof imageInput === 'string' ? imageInput : null;
     }
 
-    console.log('🚀 [AdvertisementController] Generating ad video with user prompt:', userPrompt);
+    console.log('🚀 [AdvertisementController] Calling Gemini Video Generation with prompt:', userPrompt.substring(0, 100));
 
     const geminiResult = await generateGeminiVideo({
       userPrompt,
       imageInput,
       style,
-      aspectRatio
+      aspectRatio,
+      duration
     });
 
     const adData = {
@@ -95,7 +122,7 @@ export const generateAdvertisement = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'Video advertisement generated successfully',
+      message: 'AI Advertisement video generated successfully!',
       advertisement: newAd,
       data: newAd
     });
@@ -103,7 +130,7 @@ export const generateAdvertisement = async (req, res, next) => {
     console.error('❌ [AdvertisementController ERROR]:', error.message);
     res.status(500).json({
       success: false,
-      message: error.message || 'Video advertisement generation failed'
+      message: error.message || 'AI Advertisement generation failed.'
     });
   }
 };
@@ -188,9 +215,6 @@ export const editAdvertisement = async (req, res, next) => {
   }
 };
 
-/**
- * PART 24 & 33 — PUBLISH ADVERTISEMENT AS REEL
- */
 export const publishAdvertisementAsReel = async (req, res, next) => {
   try {
     const { id } = req.params;
