@@ -4,7 +4,7 @@ import { productService } from '../../services/api/productApi.js';
 import { advertisementService } from '../../services/api/advertisementApi.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { Button } from '../../components/ui/Button.jsx';
-import { Sparkles, Wand2, Film, Play, CheckCircle2, RefreshCw, ArrowLeft, Send } from 'lucide-react';
+import { Sparkles, Wand2, Film, CheckCircle2, RefreshCw, ArrowLeft, Send, AlertCircle } from 'lucide-react';
 
 export const AdminCreateAdvertisementPage = () => {
   const navigate = useNavigate();
@@ -25,6 +25,7 @@ export const AdminCreateAdvertisementPage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState('');
   const [generatedAd, setGeneratedAd] = useState(null);
+  const [generationError, setGenerationError] = useState(null);
 
   const [editInstruction, setEditInstruction] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -46,18 +47,19 @@ export const AdminCreateAdvertisementPage = () => {
   };
 
   const handleGenerateAd = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!selectedProduct) {
       showToast('Please select a product first', 'error');
       return;
     }
 
     setIsGenerating(true);
-    setGenerationStep('Analyzing product details & image...');
+    setGenerationError(null);
+    setGenerationStep('Creating your PalamnerPalace advertisement...');
 
     try {
-      setTimeout(() => setGenerationStep('Building visual prompt & camera directions...'), 400);
-      setTimeout(() => setGenerationStep('Calling Gemini Omni Flash video engine...'), 800);
+      setTimeout(() => setGenerationStep('Analyzing product details & image...'), 400);
+      setTimeout(() => setGenerationStep('Calling Gemini Omni Flash video engine...'), 1000);
 
       const result = await advertisementService.generateAdvertisement({
         product: selectedProduct,
@@ -70,10 +72,13 @@ export const AdminCreateAdvertisementPage = () => {
         aspectRatio,
       });
 
-      setGeneratedAd(result.data);
+      const adData = result?.data || result?.advertisement || result;
+      setGeneratedAd(adData);
       showToast('AI Advertisement generated successfully!', 'success');
     } catch (err) {
-      showToast(err.message || 'Failed to generate advertisement', 'error');
+      const errMsg = err.message || 'Failed to generate advertisement. Please verify Gemini API connectivity.';
+      setGenerationError(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setIsGenerating(false);
       setGenerationStep('');
@@ -88,7 +93,7 @@ export const AdminCreateAdvertisementPage = () => {
         generatedAd._id || generatedAd.id,
         editInstruction
       );
-      setGeneratedAd(result.data);
+      setGeneratedAd(result.data || result);
       setEditInstruction('');
       showToast('AI Edit applied to advertisement!', 'success');
     } catch (err) {
@@ -299,33 +304,38 @@ export const AdminCreateAdvertisementPage = () => {
               <div className="w-full aspect-[9/16] bg-black rounded-2xl border border-neutral-800 flex flex-col items-center justify-center p-6 text-center space-y-4 animate-pulse">
                 <Wand2 className="w-10 h-10 text-[#E50914] animate-bounce" />
                 <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-white">AI IS CREATING YOUR AD</h4>
-                  <p className="text-xs text-neutral-400">{generationStep}</p>
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider">GENERATING YOUR AD</h4>
+                  <p className="text-xs text-neutral-400 font-medium">{generationStep || 'Creating your PalamnerPalace advertisement...'}</p>
                 </div>
+              </div>
+            ) : generationError ? (
+              <div className="p-5 bg-red-950/80 border border-red-600 rounded-2xl space-y-3 text-left">
+                <div className="flex items-center gap-2 text-red-400 font-black text-xs uppercase tracking-wider">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>ADVERTISEMENT GENERATION FAILED</span>
+                </div>
+                <p className="text-xs text-red-200 leading-relaxed">{generationError}</p>
+                <Button variant="outline" size="sm" onClick={handleGenerateAd}>
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Try Again</span>
+                </Button>
               </div>
             ) : generatedAd ? (
               <div className="space-y-4">
-                {/* Preview Video Box */}
+                {/* 9:16 Video Player Container */}
                 <div className="relative aspect-[9/16] w-full max-w-[280px] mx-auto bg-black rounded-2xl overflow-hidden border-2 border-[#E50914] shadow-2xl group">
-                  <img
-                    src={generatedAd.videoUrl || generatedAd.thumbnailUrl || selectedProduct?.image}
-                    alt="Ad Preview"
+                  <video
+                    controls
+                    playsInline
+                    preload="metadata"
+                    muted
+                    src={generatedAd.videoUrl}
+                    poster={generatedAd.thumbnailUrl || selectedProduct?.image}
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 pointer-events-none"></div>
 
-                  <div className="absolute top-3 left-3 bg-[#E50914] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase">
-                    {generatedAd.objective}
-                  </div>
-
-                  <div className="absolute bottom-4 left-4 right-4 text-white space-y-2">
-                    <div className="text-xs font-bold">{selectedProduct?.title}</div>
-                    <button
-                      onClick={handlePublishAsReel}
-                      className="w-full py-2 bg-[#E50914] text-white font-bold text-xs rounded-lg shadow uppercase tracking-wider"
-                    >
-                      {generatedAd.callToAction || 'Shop Now'}
-                    </button>
+                  <div className="absolute top-3 left-3 bg-[#E50914] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase pointer-events-none">
+                    {generatedAd.objective || objective}
                   </div>
                 </div>
 
