@@ -15,12 +15,11 @@ export const AdminCreateAdvertisementPage = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
-  // PART 25 — TEST PROMPT
+  // PART 28 — TEST PROMPT
   const [description, setDescription] = useState(
-    'Animate the supplied shirt into a single continuous premium product advertisement. Keep the exact shirt visible throughout the entire video. Slowly move the camera toward the shirt and gently orbit around it. Highlight the blue fabric, collar, buttons, cuffs and pocket. Use professional studio lighting and a clean neutral background. Preserve the exact product design and color. No scene cuts. No roads. No cars. No buildings. No unrelated objects. Do not replace the product. End with a premium hero shot of the exact shirt.'
+    'Use the supplied image as the starting frame. Create a single continuous product video of the exact blue shirt. Slowly push the camera toward it and make a subtle orbit. Preserve the exact blue color and design. Keep the shirt visible throughout. Add realistic fabric movement and professional studio lighting. Use a clean neutral background. End with a premium hero shot. Do not introduce any unrelated object or scene.'
   );
   const [visualStyle, setVisualStyle] = useState('Cinematic');
-  const [duration, setDuration] = useState('8 seconds');
 
   // Generation Lifecycle States
   const [isGenerating, setIsGenerating] = useState(false);
@@ -33,7 +32,7 @@ export const AdminCreateAdvertisementPage = () => {
   const [editInstruction, setEditInstruction] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
-  // PART 17 — RESET PREVIOUS GENERATION STATE WHEN NEW IMAGE IS SELECTED
+  // PART 16 & 17 — RESET GENERATION OUTPUT STATE WHEN NEW IMAGE IS SELECTED
   const handleFileChange = (file) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -95,7 +94,6 @@ export const AdminCreateAdvertisementPage = () => {
       formData.append('prompt', description.trim());
       formData.append('style', visualStyle);
       formData.append('aspectRatio', '9:16');
-      formData.append('duration', duration);
 
       const result = await advertisementService.generateAdvertisement(formData);
       const adData = result?.advertisement || result?.data || result;
@@ -242,7 +240,7 @@ export const AdminCreateAdvertisementPage = () => {
             </div>
 
             {/* Optional Settings */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-neutral-300">Visual Style</label>
                 <select
@@ -267,19 +265,6 @@ export const AdminCreateAdvertisementPage = () => {
                   readOnly
                   className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-400 font-bold"
                 />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-neutral-300">Duration</label>
-                <select
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  className="w-full bg-black border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
-                >
-                  <option value="8 seconds">8 seconds (Gemini Omni Standard)</option>
-                  <option value="5 seconds">5 seconds</option>
-                  <option value="10 seconds">10 seconds</option>
-                </select>
               </div>
             </div>
 
