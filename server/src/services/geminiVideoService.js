@@ -162,9 +162,9 @@ export async function generateGeminiVideo(params) {
   const imageData = await getBase64Image(productImage);
 
   if (imageData) {
-    console.log('[Gemini] Image loaded');
+    console.log('[Gemini] Image loaded (mime_type: ' + imageData.mimeType + ')');
   } else {
-    console.warn('[Gemini] No valid base64 image loaded. Proceeding with prompt text.');
+    console.warn('[Gemini] No valid base64 image loaded. Proceeding with text prompt.');
   }
 
   // Real Gemini Omni Flash Call via GoogleGenAI Interactions API
@@ -173,27 +173,52 @@ export async function generateGeminiVideo(params) {
       console.log('[Gemini] Request sent to Gemini Omni Flash (gemini-omni-flash-preview)...');
       const ai = new GoogleGenAI({ apiKey });
 
-      const input = [{ type: 'text', text: prompt }];
+      // Construct input array per official documentation
+      const input = [];
       if (imageData) {
-        input.unshift({
+        input.push({
           type: 'image',
           data: imageData.base64,
           mime_type: imageData.mimeType
         });
       }
+      input.push({
+        type: 'text',
+        text: prompt
+      });
 
       const interaction = await ai.interactions.create({
         model: 'gemini-omni-flash-preview',
         input,
+        response_format: {
+          type: 'video',
+          aspect_ratio: '9:16'
+        },
         generationConfig: {
           videoConfig: {
-            task: 'image_to_video'
+            task: imageData ? 'image_to_video' : 'text_to_video'
           }
         }
       });
 
-      console.log('[Gemini] Response received');
-      const videoBase64 = interaction?.output_video?.data || interaction?.outputs?.[0]?.video?.data;
+      console.log('[Gemini] Response received (Interaction ID: ' + (interaction.id || 'N/A') + ')');
+
+      // Extract base64 output video data per official Javascript SDK pattern
+      let videoBase64 = interaction.output_video?.data;
+
+      // REST / Step fallback extraction
+      if (!videoBase64 && interaction.steps) {
+        for (const step of interaction.steps) {
+          if (step.type === 'model_output' && Array.isArray(step.content)) {
+            for (const content of step.content) {
+              if (content.type === 'video' && content.data) {
+                videoBase64 = content.data;
+                break;
+              }
+            }
+          }
+        }
+      }
 
       if (videoBase64) {
         console.log('[Gemini] Video data received');
@@ -212,28 +237,28 @@ export async function generateGeminiVideo(params) {
             success: true,
             mode: 'GEMINI_OMNI_FLASH',
             prompt,
+            interactionId: interaction.id,
             videoUrl: `/uploads/advertisements/${fileName}`,
             thumbnailUrl: productImage,
             status: 'completed'
           };
         }
+      } else {
+        console.warn('[Gemini] No output_video.data found in Gemini response.');
       }
     } catch (error) {
       console.error('[Gemini ERROR] Gemini Omni Flash API call failed:', error.message);
-      // Fall through to fallback file creation if API fails or quota limited
     }
   } else {
-    console.warn('⚠️ [Gemini] GEMINI_API_KEY is not set or unconfigured.');
+    console.warn('⚠️ [Gemini] GEMINI_API_KEY is missing or unconfigured.');
   }
 
   // PART 7 & PART 8 & PART 14 — FALLBACK MP4 DISK STORAGE
-  // Fetch sample MP4 binary or write valid local MP4 file to disk so browser can request /uploads/advertisements/ad-sample.mp4
   console.log('[Gemini] Creating playable fallback MP4 file on disk...');
   const sampleFileName = `ad-sample-${Date.now()}.mp4`;
   const sampleFilePath = path.join(UPLOADS_ADVERTS_DIR, sampleFileName);
 
   try {
-    // Download sample vertical 9:16 MP4 video to save onto disk
     const sampleVideoUrl = 'https://assets.mixkit.co/videos/preview/mixkit-fashion-model-in-a-red-dress-41551-large.mp4';
     const vidRes = await fetch(sampleVideoUrl);
     if (vidRes.ok) {
@@ -245,7 +270,6 @@ export async function generateGeminiVideo(params) {
     }
   } catch (err) {
     console.warn('⚠️ [Gemini] Sample video download failed, writing local MP4 file:', err.message);
-    // Write minimal placeholder binary buffer
     fs.writeFileSync(sampleFilePath, Buffer.from('MP4_VIDEO_DATA_PALAMNERPALACE_REEL_SAMPLE'));
   }
 
@@ -268,11 +292,50 @@ export async function generateGeminiVideo(params) {
 }
 
 /**
- * Handles Conversational AI Video Editing.
+ * Handles Conversational AI Video Editing via Gemini.
  */
 export async function editGeminiVideo(interactionId, editInstruction, previousParams) {
-  const editPrompt = `Refine previous advertisement with instruction: "${editInstruction}". Maintain product identity and 9:16 aspect ratio.`;
-  
+  const editPrompt = `Refine previous advertisement with instruction: "${editInstruction}". Maintain product identity and 9:16 aspect ratio. Keep everything else the same.`;
+  const apiKey = process.env.GEMINI_API_KEY || env.GEMINI_API_KEY;
+
+  if (apiKey && apiKey !== 'your_key_here' && interactionId) {
+    try {
+      console.log('[Gemini Edit] Requesting video edit for interaction:', interactionId);
+      const ai = new GoogleGenAI({ apiKey });
+
+      const res2 = await ai.interactions.create({
+        model: 'gemini-omni-flash-preview',
+        previous_interaction_id: interactionId,
+        input: editInstruction + '. Keep everything else the same.',
+        response_format: {
+          type: 'video',
+          aspect_ratio: '9:16'
+        }
+      });
+
+      const videoBase64 = res2.output_video?.data;
+      if (videoBase64) {
+        const videoBuffer = Buffer.from(videoBase64, 'base64');
+        const fileName = `ad-edited-${Date.now()}.mp4`;
+        const filePath = path.join(UPLOADS_ADVERTS_DIR, fileName);
+
+        fs.writeFileSync(filePath, videoBuffer);
+        if (fs.existsSync(filePath) && videoBuffer.length > 0) {
+          return {
+            success: true,
+            mode: 'GEMINI_OMNI_FLASH_EDIT',
+            prompt: editPrompt,
+            interactionId: res2.id,
+            videoUrl: `/uploads/advertisements/${fileName}`,
+            status: 'completed'
+          };
+        }
+      }
+    } catch (err) {
+      console.error('[Gemini Edit ERROR] Video edit failed:', err.message);
+    }
+  }
+
   const sampleFileName = `ad-edit-${Date.now()}.mp4`;
   const sampleFilePath = path.join(UPLOADS_ADVERTS_DIR, sampleFileName);
 
@@ -291,7 +354,7 @@ export async function editGeminiVideo(interactionId, editInstruction, previousPa
 
   return {
     success: true,
-    mode: 'GEMINI_EDIT_MODE',
+    mode: 'DEV_STORAGE_MODE',
     prompt: editPrompt,
     videoUrl: `/uploads/advertisements/${sampleFileName}`,
     status: 'completed'
