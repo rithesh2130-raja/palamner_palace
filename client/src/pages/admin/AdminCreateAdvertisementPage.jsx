@@ -4,7 +4,7 @@ import { advertisementService } from '../../services/api/advertisementApi.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { getMediaUrl } from '../../utils/mediaUrl.js';
-import { Sparkles, Wand2, Film, RefreshCw, ArrowLeft, Send, Upload, AlertCircle } from 'lucide-react';
+import { Sparkles, Wand2, Film, RefreshCw, ArrowLeft, Send, Upload, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 export const AdminCreateAdvertisementPage = () => {
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ export const AdminCreateAdvertisementPage = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
-  // PART 28 — TEST PROMPT
+  // Default Test Prompt
   const [description, setDescription] = useState(
     'Use the supplied image as the starting frame. Create a single continuous product video of the exact blue shirt. Slowly push the camera toward it and make a subtle orbit. Preserve the exact blue color and design. Keep the shirt visible throughout. Add realistic fabric movement and professional studio lighting. Use a clean neutral background. End with a premium hero shot. Do not introduce any unrelated object or scene.'
   );
@@ -32,7 +32,7 @@ export const AdminCreateAdvertisementPage = () => {
   const [editInstruction, setEditInstruction] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
-  // PART 16 & 17 — RESET GENERATION OUTPUT STATE WHEN NEW IMAGE IS SELECTED
+  // PART 11 & 17 — RESET ALL PREVIOUS GENERATION STATE ON NEW IMAGE SELECT
   const handleFileChange = (file) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -40,14 +40,13 @@ export const AdminCreateAdvertisementPage = () => {
       return;
     }
 
-    // Reset previous generation output state
+    // Reset previous video and ad state completely
     setGeneratedAd(null);
     setGenerationError(null);
     setVideoLoadError(false);
     setEditInstruction('');
 
     setSelectedFile(file);
-    // Preview URL is strictly for UI rendering
     setPreviewUrl(URL.createObjectURL(file));
   };
 
@@ -71,32 +70,44 @@ export const AdminCreateAdvertisementPage = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // PART 10 & 26 — FRONTEND GENERATION REQUEST & SUCCESS CONDITION
   const handleGenerateAd = async (e) => {
     if (e) e.preventDefault();
+
+    if (!selectedFile) {
+      showToast('Please select a product reference image to upload', 'error');
+      return;
+    }
+
     if (!description.trim()) {
       showToast('Please enter an advertisement description', 'error');
       return;
     }
 
-    setIsGenerating(true);
+    // Clear stale state immediately
+    setGeneratedAd(null);
     setGenerationError(null);
     setVideoLoadError(false);
-    setGenerationStep('Creating your PalamnerPalace product advertisement...');
+
+    setIsGenerating(true);
+    setGenerationStep('Creating your unique PalamnerPalace product advertisement...');
 
     try {
-      setTimeout(() => setGenerationStep('Uploading reference product image...'), 300);
+      setTimeout(() => setGenerationStep('Uploading product reference image...'), 300);
       setTimeout(() => setGenerationStep('Calling Gemini Omni Flash video engine with <FIRST_FRAME> binding...'), 900);
 
       const formData = new FormData();
-      if (selectedFile) {
-        formData.append('image', selectedFile, selectedFile.name);
-      }
+      formData.append('image', selectedFile, selectedFile.name);
       formData.append('prompt', description.trim());
       formData.append('style', visualStyle);
       formData.append('aspectRatio', '9:16');
 
       const result = await advertisementService.generateAdvertisement(formData);
       const adData = result?.advertisement || result?.data || result;
+
+      if (!adData || !adData.videoUrl) {
+        throw new Error('Server generated invalid advertisement response (missing videoUrl).');
+      }
 
       setGeneratedAd(adData);
       showToast('AI Advertisement video generated successfully!', 'success');
@@ -142,7 +153,12 @@ export const AdminCreateAdvertisementPage = () => {
     }
   };
 
-  const videoSourceUrl = generatedAd ? getMediaUrl(generatedAd.videoUrl) : '';
+  // PART 13 — CACHE BUSTING & MEDIA URL
+  const rawVideoUrl = generatedAd ? getMediaUrl(generatedAd.videoUrl) : '';
+  const videoSourceUrl = generatedAd
+    ? `${rawVideoUrl}?generation=${generatedAd.generationId || generatedAd._id || Date.now()}`
+    : '';
+
   const posterSourceUrl = previewUrl || (generatedAd ? getMediaUrl(generatedAd.thumbnailUrl) : '');
 
   return (
@@ -173,8 +189,9 @@ export const AdminCreateAdvertisementPage = () => {
           <form onSubmit={handleGenerateAd} className="space-y-5">
             {/* Upload Reference Image Zone */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-white uppercase tracking-wider">
-                Upload Product Reference Image (Optional)
+              <label className="block text-xs font-bold text-white uppercase tracking-wider flex items-center justify-between">
+                <span>Upload Product Reference Image</span>
+                <span className="text-[10px] text-red-500 font-bold">*Required</span>
               </label>
 
               {!previewUrl ? (
@@ -313,6 +330,7 @@ export const AdminCreateAdvertisementPage = () => {
               </div>
             ) : generatedAd ? (
               <div className="space-y-4">
+                {/* PART 12 — UNIQUE REACT KEY TO FORCE REMOUNTING ON NEW GENERATION */}
                 <div className="relative aspect-[9/16] w-full max-w-[280px] mx-auto bg-black rounded-2xl overflow-hidden border-2 border-[#E50914] shadow-2xl group">
                   {videoLoadError ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center space-y-2 bg-neutral-950 text-red-400">
@@ -327,6 +345,7 @@ export const AdminCreateAdvertisementPage = () => {
                     </div>
                   ) : (
                     <video
+                      key={generatedAd.generationId || generatedAd._id || generatedAd.id}
                       controls
                       playsInline
                       preload="metadata"
@@ -344,6 +363,19 @@ export const AdminCreateAdvertisementPage = () => {
                   <div className="absolute top-3 left-3 bg-[#E50914] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase pointer-events-none">
                     VIDEO READY
                   </div>
+                </div>
+
+                {/* PART 25 — GENERATION DEBUG PANEL */}
+                <div className="p-3 bg-black border border-neutral-800 rounded-xl space-y-1 text-[11px] text-neutral-400 font-mono">
+                  <div className="text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-1 mb-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>GENERATION DEBUG</span>
+                  </div>
+                  <div className="truncate"><span className="text-neutral-500">Generation ID:</span> <span className="text-emerald-400 font-bold">{generatedAd.generationId || 'N/A'}</span></div>
+                  <div className="truncate"><span className="text-neutral-500">Gemini Interaction:</span> <span className="text-white">{generatedAd.geminiInteractionId || 'N/A'}</span></div>
+                  <div className="truncate"><span className="text-neutral-500">Input Image Hash:</span> <span className="text-amber-400">{generatedAd.inputImageHash ? generatedAd.inputImageHash.substring(0, 16) + '...' : 'N/A'}</span></div>
+                  <div className="truncate"><span className="text-neutral-500">Video Hash:</span> <span className="text-cyan-400">{generatedAd.videoHash ? generatedAd.videoHash.substring(0, 16) + '...' : 'N/A'}</span></div>
+                  <div className="truncate"><span className="text-neutral-500">Video URL:</span> <span className="text-neutral-300">{generatedAd.videoUrl}</span></div>
                 </div>
 
                 {/* Conversational AI Edit */}

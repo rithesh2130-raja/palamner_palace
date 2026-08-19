@@ -11,17 +11,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const UPLOADS_ADVERTS_DIR = path.join(__dirname, '../../uploads/advertisements');
 const UPLOADS_REFS_DIR = path.join(__dirname, '../../uploads/references');
-const UPLOADS_DEBUG_DIR = path.join(__dirname, '../../uploads/debug');
 
-// Ensure destination directories exist
 if (!fs.existsSync(UPLOADS_ADVERTS_DIR)) {
   fs.mkdirSync(UPLOADS_ADVERTS_DIR, { recursive: true });
 }
 if (!fs.existsSync(UPLOADS_REFS_DIR)) {
   fs.mkdirSync(UPLOADS_REFS_DIR, { recursive: true });
-}
-if (!fs.existsSync(UPLOADS_DEBUG_DIR)) {
-  fs.mkdirSync(UPLOADS_DEBUG_DIR, { recursive: true });
 }
 
 let memoryAdvertisements = [];
@@ -40,96 +35,98 @@ export const getHealthStatus = (req, res) => {
 };
 
 /**
- * PART 5, 11, 12, 14, 15, 16 — GENERATE ADVERTISEMENT VIDEO (NEW INTERACTION ONLY)
+ * PART 1, 2, 8, 9, 10, 18 — GENERATE ADVERTISEMENT VIDEO (UNIQUE GENERATION ID & NEW MONGO RECORD)
  */
 export const generateAdvertisement = async (req, res, next) => {
   try {
+    // PART 1 — UNIQUE GENERATION ID PER REQUEST
+    const generationId = crypto.randomUUID();
     const userPrompt = req.body.prompt || req.body.description || 'Animate the supplied product image into a single continuous product video. Keep the exact product visible throughout.';
     const style = req.body.style || req.body.visualStyle || 'Cinematic';
     const aspectRatio = req.body.aspectRatio || '9:16';
-    const duration = req.body.duration || '8 seconds';
 
-    let imageInput = null;
-    let uploadedImageUrl = null;
-    let imageHash = null;
-
-    // PART 5 & 12 — SAVE DEBUG COPIES OF UPLOADED PRODUCT IMAGE
-    if (req.file) {
-      const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
-      if (!allowedMimes.includes(req.file.mimetype) || req.file.size === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Valid product reference image (JPEG, PNG, WEBP) is required.'
-        });
-      }
-
-      const ext = path.extname(req.file.originalname) || '.jpg';
-      const refFileName = `ref-${Date.now()}-${Math.random().toString(36).substring(2, 6)}${ext}`;
-      const refFilePath = path.join(UPLOADS_REFS_DIR, refFileName);
-
-      // Save reference file
-      fs.writeFileSync(refFilePath, req.file.buffer);
-      uploadedImageUrl = `/uploads/references/${refFileName}`;
-      imageInput = req.file;
-
-      // Save debug input image for manual visual inspection (PART 12)
-      const debugFileName = `debug-input-${Date.now()}${ext}`;
-      const debugFilePath = path.join(UPLOADS_DEBUG_DIR, debugFileName);
-      fs.writeFileSync(debugFilePath, req.file.buffer);
-
-      // SHA-256 Hash
-      imageHash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
-
-      console.log('───────────────────────────────────────────────────────');
-      console.log('[DEBUG INPUT SAVED]');
-      console.log('Original Name: ', req.file.originalname);
-      console.log('MIME:          ', req.file.mimetype);
-      console.log('Size:          ', req.file.size, 'bytes');
-      console.log('SHA-256 Hash:  ', imageHash);
-      console.log('Debug File:    ', debugFilePath);
-      console.log('───────────────────────────────────────────────────────');
-    } else if (req.body.image || req.body.imageUrl) {
-      imageInput = req.body.image || req.body.imageUrl;
-      uploadedImageUrl = typeof imageInput === 'string' ? imageInput : null;
+    if (!req.file || req.file.size === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid product reference image (JPEG, PNG, WEBP) is required.'
+      });
     }
 
-    console.log('🚀 [AdvertisementController] Generating NEW ad video (no previous interaction ID)');
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedMimes.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Only JPEG, PNG, and WEBP image formats are supported.'
+      });
+    }
 
+    // PART 2 — HASH UPLOADED IMAGE
+    const inputImageHash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+    const ext = path.extname(req.file.originalname) || '.jpg';
+    const refFileName = `ref-${generationId}${ext}`;
+    const refFilePath = path.join(UPLOADS_REFS_DIR, refFileName);
+
+    fs.writeFileSync(refFilePath, req.file.buffer);
+    const uploadedImageUrl = `/uploads/references/${refFileName}`;
+
+    console.log('===========================================================');
+    console.log('ADVERTISEMENT GENERATION REQUEST');
+    console.log('generationId:    ', generationId);
+    console.log('inputImage:      ', req.file.originalname);
+    console.log('inputImageHash:  ', inputImageHash);
+    console.log('inputImageSize:  ', req.file.size, 'bytes');
+    console.log('===========================================================');
+
+    // Execute Gemini Omni Video Service Generation
     const geminiResult = await generateGeminiVideo({
+      generationId,
       userPrompt,
-      imageInput,
+      imageInput: req.file,
       style,
-      aspectRatio,
-      duration
+      aspectRatio
     });
 
     const adData = {
+      generationId,
+      geminiInteractionId: geminiResult.geminiInteractionId || null,
+      inputImageHash,
+      videoHash: geminiResult.videoHash,
       prompt: userPrompt,
       style,
       aspectRatio,
-      duration,
-      uploadedImageUrl: uploadedImageUrl || geminiResult.thumbnailUrl || null,
+      uploadedImageUrl,
       createdBy: req.user?.name || 'Admin',
       status: 'completed',
       videoUrl: geminiResult.videoUrl,
-      thumbnailUrl: uploadedImageUrl || geminiResult.thumbnailUrl || null,
-      geminiInteractionId: geminiResult.interactionId || null,
+      thumbnailUrl: uploadedImageUrl,
       publishedAsReel: false
     };
 
+    // PART 8 & 18 — CREATE A BRAND NEW DATABASE RECORD (NEVER UPDATE OLD RECORD)
     let newAd;
     try {
       newAd = await Advertisement.create(adData);
     } catch {
       newAd = {
         ...adData,
-        _id: `ad-${Date.now()}`,
-        id: `ad-${Date.now()}`,
+        _id: `ad-${generationId}`,
+        id: `ad-${generationId}`,
         createdAt: new Date().toISOString()
       };
       memoryAdvertisements.unshift(newAd);
     }
 
+    // PART 9 — VERIFY LOGGED MONGO DATA
+    console.log('[Database Record Saved]', {
+      generationId: newAd.generationId,
+      advertisementId: newAd._id || newAd.id,
+      geminiInteractionId: newAd.geminiInteractionId,
+      inputImageHash: newAd.inputImageHash,
+      videoHash: newAd.videoHash,
+      videoUrl: newAd.videoUrl
+    });
+
+    // PART 10 — RETURN NEW RECORD
     res.status(201).json({
       success: true,
       message: 'AI Advertisement video generated successfully!',
@@ -185,7 +182,7 @@ export const getAdvertisementById = async (req, res, next) => {
 };
 
 /**
- * PART 15 — CONVERSATIONAL AI EDITING (USES PREVIOUS INTERACTION ID)
+ * PART 17 — CONVERSATIONAL AI EDITING (USES PREVIOUS INTERACTION ID)
  */
 export const editAdvertisement = async (req, res, next) => {
   try {

@@ -2,6 +2,10 @@ import mongoose from 'mongoose';
 
 const advertisementSchema = new mongoose.Schema(
   {
+    generationId: { type: String, required: true },
+    geminiInteractionId: { type: String },
+    inputImageHash: { type: String },
+    videoHash: { type: String },
     product: {
       id: { type: String },
       title: { type: String },
@@ -16,7 +20,6 @@ const advertisementSchema = new mongoose.Schema(
     prompt: { type: String, required: true },
     style: { type: String, default: 'Cinematic' },
     aspectRatio: { type: String, default: '9:16' },
-    duration: { type: String, default: '8 seconds' },
     createdBy: { type: String, default: 'Admin' },
     status: {
       type: String,
@@ -25,7 +28,6 @@ const advertisementSchema = new mongoose.Schema(
     },
     videoUrl: { type: String },
     thumbnailUrl: { type: String },
-    geminiInteractionId: { type: String },
     publishedAsReel: { type: Boolean, default: false },
     reelId: { type: String }
   },
