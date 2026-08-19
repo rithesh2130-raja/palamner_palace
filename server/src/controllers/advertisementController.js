@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const UPLOADS_ADVERTS_DIR = path.join(__dirname, '../../uploads/advertisements');
 const UPLOADS_REFS_DIR = path.join(__dirname, '../../uploads/references');
+const UPLOADS_DEBUG_DIR = path.join(__dirname, '../../uploads/debug');
 
 // Ensure destination directories exist
 if (!fs.existsSync(UPLOADS_ADVERTS_DIR)) {
@@ -18,6 +19,9 @@ if (!fs.existsSync(UPLOADS_ADVERTS_DIR)) {
 }
 if (!fs.existsSync(UPLOADS_REFS_DIR)) {
   fs.mkdirSync(UPLOADS_REFS_DIR, { recursive: true });
+}
+if (!fs.existsSync(UPLOADS_DEBUG_DIR)) {
+  fs.mkdirSync(UPLOADS_DEBUG_DIR, { recursive: true });
 }
 
 let memoryAdvertisements = [];
@@ -36,11 +40,11 @@ export const getHealthStatus = (req, res) => {
 };
 
 /**
- * PART 5, 6, 7, 11, 14, 15 — GENERATE ADVERTISEMENT VIDEO (MULTIPART UPLOAD)
+ * PART 5, 11, 12, 14, 15, 16 — GENERATE ADVERTISEMENT VIDEO (NEW INTERACTION ONLY)
  */
 export const generateAdvertisement = async (req, res, next) => {
   try {
-    const userPrompt = req.body.prompt || req.body.description || 'Create a cinematic video advertisement for this product.';
+    const userPrompt = req.body.prompt || req.body.description || 'Animate the supplied product image into a single continuous product video. Keep the exact product visible throughout.';
     const style = req.body.style || req.body.visualStyle || 'Cinematic';
     const aspectRatio = req.body.aspectRatio || '9:16';
     const duration = req.body.duration || '8 seconds';
@@ -49,13 +53,13 @@ export const generateAdvertisement = async (req, res, next) => {
     let uploadedImageUrl = null;
     let imageHash = null;
 
-    // PART 5 & 6 — BACKEND UPLOAD VALIDATION & DIAGNOSTICS
+    // PART 5 & 12 — SAVE DEBUG COPIES OF UPLOADED PRODUCT IMAGE
     if (req.file) {
       const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
       if (!allowedMimes.includes(req.file.mimetype) || req.file.size === 0) {
         return res.status(400).json({
           success: false,
-          message: 'Valid product/reference image (JPEG, PNG, WEBP) is required.'
+          message: 'Valid product reference image (JPEG, PNG, WEBP) is required.'
         });
       }
 
@@ -63,27 +67,33 @@ export const generateAdvertisement = async (req, res, next) => {
       const refFileName = `ref-${Date.now()}-${Math.random().toString(36).substring(2, 6)}${ext}`;
       const refFilePath = path.join(UPLOADS_REFS_DIR, refFileName);
 
+      // Save reference file
       fs.writeFileSync(refFilePath, req.file.buffer);
       uploadedImageUrl = `/uploads/references/${refFileName}`;
       imageInput = req.file;
 
-      // Calculate SHA-256 hash for image identity verification
+      // Save debug input image for manual visual inspection (PART 12)
+      const debugFileName = `debug-input-${Date.now()}${ext}`;
+      const debugFilePath = path.join(UPLOADS_DEBUG_DIR, debugFileName);
+      fs.writeFileSync(debugFilePath, req.file.buffer);
+
+      // SHA-256 Hash
       imageHash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
 
       console.log('───────────────────────────────────────────────────────');
-      console.log('[UPLOAD DIAGNOSTICS]');
-      console.log('Uploaded file:  ', req.file.originalname);
-      console.log('MIME:           ', req.file.mimetype);
-      console.log('Size:           ', req.file.size, 'bytes');
-      console.log('Saved path:     ', refFilePath);
-      console.log('Image SHA-256:  ', imageHash);
+      console.log('[DEBUG INPUT SAVED]');
+      console.log('Original Name: ', req.file.originalname);
+      console.log('MIME:          ', req.file.mimetype);
+      console.log('Size:          ', req.file.size, 'bytes');
+      console.log('SHA-256 Hash:  ', imageHash);
+      console.log('Debug File:    ', debugFilePath);
       console.log('───────────────────────────────────────────────────────');
     } else if (req.body.image || req.body.imageUrl) {
       imageInput = req.body.image || req.body.imageUrl;
       uploadedImageUrl = typeof imageInput === 'string' ? imageInput : null;
     }
 
-    console.log('🚀 [AdvertisementController] Calling Gemini Video Generation with prompt:', userPrompt.substring(0, 100));
+    console.log('🚀 [AdvertisementController] Generating NEW ad video (no previous interaction ID)');
 
     const geminiResult = await generateGeminiVideo({
       userPrompt,
@@ -174,6 +184,9 @@ export const getAdvertisementById = async (req, res, next) => {
   }
 };
 
+/**
+ * PART 15 — CONVERSATIONAL AI EDITING (USES PREVIOUS INTERACTION ID)
+ */
 export const editAdvertisement = async (req, res, next) => {
   try {
     const { id } = req.params;

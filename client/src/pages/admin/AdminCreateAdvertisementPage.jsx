@@ -15,9 +15,9 @@ export const AdminCreateAdvertisementPage = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
-  // Form Inputs
+  // PART 25 — TEST PROMPT
   const [description, setDescription] = useState(
-    'Create a premium cinematic advertisement using the supplied product image as the ONLY visual reference. Slowly rotate the camera around the product while preserving its exact color, design, buttons, collar, sleeves and fabric. Use professional studio lighting and a clean luxury fashion-commercial environment. Begin with a close product shot, slowly reveal the full product, then finish with a premium hero shot. Do not show a website, user interface, screenshot, computer, browser, or advertisement editor.'
+    'Animate the supplied shirt into a single continuous premium product advertisement. Keep the exact shirt visible throughout the entire video. Slowly move the camera toward the shirt and gently orbit around it. Highlight the blue fabric, collar, buttons, cuffs and pocket. Use professional studio lighting and a clean neutral background. Preserve the exact product design and color. No scene cuts. No roads. No cars. No buildings. No unrelated objects. Do not replace the product. End with a premium hero shot of the exact shirt.'
   );
   const [visualStyle, setVisualStyle] = useState('Cinematic');
   const [duration, setDuration] = useState('8 seconds');
@@ -33,13 +33,20 @@ export const AdminCreateAdvertisementPage = () => {
   const [editInstruction, setEditInstruction] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
-  // PART 2 & 3 — STORE ACTUAL FILE OBJECT FOR MULTIPART UPLOAD
+  // PART 17 — RESET PREVIOUS GENERATION STATE WHEN NEW IMAGE IS SELECTED
   const handleFileChange = (file) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       showToast('Please select a valid product image file (JPG, PNG, WEBP)', 'error');
       return;
     }
+
+    // Reset previous generation output state
+    setGeneratedAd(null);
+    setGenerationError(null);
+    setVideoLoadError(false);
+    setEditInstruction('');
+
     setSelectedFile(file);
     // Preview URL is strictly for UI rendering
     setPreviewUrl(URL.createObjectURL(file));
@@ -59,10 +66,12 @@ export const AdminCreateAdvertisementPage = () => {
   const handleRemoveImage = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
+    setGeneratedAd(null);
+    setGenerationError(null);
+    setVideoLoadError(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // PART 4 — FRONTEND GENERATION REQUEST WITH MULTIPART FORMDATA
   const handleGenerateAd = async (e) => {
     if (e) e.preventDefault();
     if (!description.trim()) {
@@ -73,11 +82,11 @@ export const AdminCreateAdvertisementPage = () => {
     setIsGenerating(true);
     setGenerationError(null);
     setVideoLoadError(false);
-    setGenerationStep('Creating your PalamnerPalace advertisement...');
+    setGenerationStep('Creating your PalamnerPalace product advertisement...');
 
     try {
       setTimeout(() => setGenerationStep('Uploading reference product image...'), 300);
-      setTimeout(() => setGenerationStep('Calling Gemini Omni Flash video engine...'), 900);
+      setTimeout(() => setGenerationStep('Calling Gemini Omni Flash video engine with <FIRST_FRAME> binding...'), 900);
 
       const formData = new FormData();
       if (selectedFile) {
@@ -224,7 +233,7 @@ export const AdminCreateAdvertisementPage = () => {
                 Describe Your Product Advertisement
               </label>
               <textarea
-                rows={5}
+                rows={6}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe how you want your product advertisement to look and move..."
@@ -267,7 +276,7 @@ export const AdminCreateAdvertisementPage = () => {
                   onChange={(e) => setDuration(e.target.value)}
                   className="w-full bg-black border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
                 >
-                  <option value="8 seconds">8 seconds (Omni standard)</option>
+                  <option value="8 seconds">8 seconds (Gemini Omni Standard)</option>
                   <option value="5 seconds">5 seconds</option>
                   <option value="10 seconds">10 seconds</option>
                 </select>

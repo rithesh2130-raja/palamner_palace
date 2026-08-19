@@ -15,19 +15,44 @@ if (!fs.existsSync(UPLOADS_ADVERTS_DIR)) {
 }
 
 /**
- * PART 12 — STRICT PRODUCT PROMPT BUILDER
+ * PART 4, 5, 6 — GEMINI PROMPT BUILDER WITH <FIRST_FRAME> & STRICT PRODUCT CONSISTENCY
  */
 export function buildAdvertisementPrompt({ userPrompt, style = 'Cinematic' }) {
   return `
-Use the supplied image as the ONLY visual reference for the product.
-Preserve the product's: shape, color, materials, design, and important details.
-Do not replace it with another product.
-Do not show a webpage.
-Do not show a user interface.
-Do not show a computer screen.
-Do not show a screenshot.
-Do not show the advertisement editor.
-Create an actual commercial video featuring the product.
+<FIRST_FRAME>
+The supplied image is the EXACT PRODUCT REFERENCE and the starting frame of the video.
+Create a single continuous vertical fashion product advertisement using the supplied image.
+PRODUCT CONSISTENCY IS THE HIGHEST PRIORITY.
+
+The video must feature the exact product shown in the supplied image.
+Preserve:
+- exact color, pattern, and design
+- product shape, details, buttons, sleeves, collar, stitching, and fabric appearance
+- proportions and overall product identity
+
+Do NOT replace the product with another product.
+Do NOT show a road.
+Do NOT show streets.
+Do NOT show cars.
+Do NOT show buildings.
+Do NOT show a website.
+Do NOT show a browser.
+Do NOT show a computer.
+Do NOT show the PalamnerPalace interface.
+Do NOT show an image editor.
+Do NOT create unrelated scenery.
+
+Create a SINGLE CONTINUOUS PRODUCT COMMERCIAL.
+single continuous shot
+single unbroken scene
+no scene cuts
+no unrelated scenes
+
+Start from the supplied product image.
+Use subtle realistic camera movement. Slowly push the camera toward the subject and gently orbit around it while keeping the product as the central focus.
+Use clean fashion-studio lighting and a clean neutral background.
+The product must remain visible throughout the entire video.
+End with a premium hero shot of the exact product.
 
 USER CREATIVE DIRECTION:
 ${userPrompt}
@@ -35,8 +60,8 @@ ${userPrompt}
 Visual style:
 ${style}
 
-Aspect ratio:
-9:16
+Format:
+Vertical 9:16.
 `.trim();
 }
 
@@ -47,7 +72,6 @@ async function processImageInput(imageInput) {
   if (!imageInput) return null;
 
   try {
-    // 1. Multer file object
     if (typeof imageInput === 'object' && imageInput.buffer) {
       const mimeType = imageInput.mimetype || 'image/jpeg';
       const base64 = imageInput.buffer.toString('base64');
@@ -55,13 +79,12 @@ async function processImageInput(imageInput) {
       return {
         base64,
         mimeType,
-        filename: imageInput.originalname || 'uploaded_image.jpg',
+        filename: imageInput.originalname || 'uploaded_product_image.jpg',
         bytes: imageInput.buffer.length,
         hash
       };
     }
 
-    // 2. Data URI
     if (typeof imageInput === 'string' && imageInput.startsWith('data:image')) {
       const parts = imageInput.split(';base64,');
       const mimeType = parts[0].replace('data:', '');
@@ -76,7 +99,6 @@ async function processImageInput(imageInput) {
       };
     }
 
-    // 3. Local file path
     if (typeof imageInput === 'string' && fs.existsSync(imageInput)) {
       const buffer = fs.readFileSync(imageInput);
       const ext = path.extname(imageInput).toLowerCase();
@@ -93,7 +115,6 @@ async function processImageInput(imageInput) {
       };
     }
 
-    // 4. Remote HTTP URL
     if (typeof imageInput === 'string' && (imageInput.startsWith('http://') || imageInput.startsWith('https://'))) {
       const response = await fetch(imageInput);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -129,7 +150,7 @@ function isValidMp4Buffer(buffer) {
 }
 
 /**
- * PART 11, 12, 14, 15 — GEMINI OMNI FLASH VIDEO GENERATION SERVICE
+ * PART 3, 4, 5, 6, 11, 13, 14 — GEMINI OMNI FLASH INITIAL GENERATION (NEW INTERACTION ONLY)
  */
 export async function generateGeminiVideo({ userPrompt, imageInput, style = 'Cinematic', aspectRatio = '9:16', duration = '8 seconds' }) {
   const apiKey = process.env.GEMINI_API_KEY || env.GEMINI_API_KEY;
@@ -137,15 +158,15 @@ export async function generateGeminiVideo({ userPrompt, imageInput, style = 'Cin
   const prompt = buildAdvertisementPrompt({ userPrompt, style });
   const imageData = await processImageInput(imageInput);
 
-  // PART 14 — VERIFY GEMINI INPUT BEFORE REQUEST
+  // PART 11, 13 — LOG GEMINI INPUT DIAGNOSTICS & FINAL PROMPT
   console.log('===========================================================');
   console.log('===== GEMINI INPUT =====');
-  console.log('filename:     ', imageData ? imageData.filename : 'N/A');
-  console.log('mime:         ', imageData ? imageData.mimeType : 'N/A');
-  console.log('bytes:        ', imageData ? `${imageData.bytes} bytes` : '0 bytes');
-  console.log('image hash:   ', imageData ? imageData.hash : 'N/A');
-  console.log('image source: ', imageData ? 'UPLOADED FILE' : 'TEXT ONLY');
-  console.log('prompt:       ', prompt.substring(0, 180) + '...');
+  console.log('fileName:     ', imageData ? imageData.filename : 'N/A');
+  console.log('mimeType:     ', imageData ? imageData.mimeType : 'N/A');
+  console.log('fileSize:     ', imageData ? `${imageData.bytes} bytes` : '0 bytes');
+  console.log('imageHash:    ', imageData ? imageData.hash : 'N/A');
+  console.log('source:       ', imageData ? 'USER_UPLOADED_IMAGE' : 'TEXT ONLY');
+  console.log('finalPrompt:  ', prompt.substring(0, 200) + '...');
   console.log('===========================================================');
 
   let geminiResponseReceived = false;
@@ -157,7 +178,7 @@ export async function generateGeminiVideo({ userPrompt, imageInput, style = 'Cin
 
   if (isApiKeyConfigured) {
     try {
-      console.log('[Gemini] Calling Gemini Omni Flash (@google/genai SDK)...');
+      console.log('[Gemini] Requesting NEW video generation via @google/genai SDK (no previous interaction ID)...');
       const ai = new GoogleGenAI({ apiKey });
 
       const inputPayload = [];
@@ -173,6 +194,7 @@ export async function generateGeminiVideo({ userPrompt, imageInput, style = 'Cin
         text: prompt
       });
 
+      // PART 3 & 14 — ALWAYS create a NEW interaction for new initial generation
       const interaction = await ai.interactions.create({
         model: 'gemini-omni-flash-preview',
         input: inputPayload,
@@ -284,7 +306,7 @@ export async function generateGeminiVideo({ userPrompt, imageInput, style = 'Cin
 }
 
 /**
- * Handles Conversational Video Editing via Gemini.
+ * PART 15 — CONVERSATIONAL AI EDITING (ONLY API INVOCATION WITH PREVIOUS INTERACTION ID)
  */
 export async function editGeminiVideo(interactionId, editInstruction) {
   const editPrompt = `${editInstruction}. Keep everything else the same.`;
