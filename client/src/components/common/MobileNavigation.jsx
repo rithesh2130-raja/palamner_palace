@@ -15,7 +15,7 @@ export const MobileNavigation = () => {
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 border-t border-slate-800 backdrop-blur-lg px-2 py-2 shadow-2xl">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-black border-t border-neutral-800 px-2 py-2 shadow-2xl">
       <div className="flex items-center justify-around">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -28,23 +28,23 @@ export const MobileNavigation = () => {
                 `flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all relative ${
                   item.isReels
                     ? isActive
-                      ? 'text-amber-400 font-extrabold scale-110'
-                      : 'text-amber-400 font-bold'
+                      ? 'text-[#E50914] font-black scale-110'
+                      : 'text-[#E50914] font-bold'
                     : isActive
-                    ? 'text-amber-400 font-bold'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'text-[#E50914] font-bold'
+                    : 'text-neutral-400 hover:text-white'
                 }`
               }
             >
               {item.isReels ? (
-                <div className="p-1.5 rounded-full bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 shadow-md">
+                <div className="p-1.5 rounded-full bg-[#E50914] text-white shadow-md">
                   <Icon className="w-4 h-4" />
                 </div>
               ) : (
                 <div className="relative">
                   <Icon className="w-5 h-5" />
                   {item.badge > 0 && (
-                    <span className="absolute -top-1.5 -right-2 bg-amber-500 text-slate-950 font-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow">
+                    <span className="absolute -top-1.5 -right-2 bg-[#E50914] text-white font-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow">
                       {item.badge}
                     </span>
                   )}

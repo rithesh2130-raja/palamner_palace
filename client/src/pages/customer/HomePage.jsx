@@ -7,7 +7,7 @@ import { CategoryCard } from '../../components/common/CategoryCard.jsx';
 import { ReelCard } from '../../components/common/ReelCard.jsx';
 import { ProductSkeleton } from '../../components/ui/Skeletons.jsx';
 
-import { Sparkles, Server, Database, Film, ShoppingBag, ArrowRight, ShieldCheck, RefreshCw, Flame, Award } from 'lucide-react';
+import { Sparkles, Server, Database, Film, ShoppingBag, ArrowRight, ShieldCheck, RefreshCw, Award, Wand2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const HomePage = () => {
@@ -58,210 +58,204 @@ export const HomePage = () => {
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
-      {/* Hero Header */}
-      <section className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 rounded-3xl p-6 sm:p-12 shadow-2xl relative overflow-hidden">
-        <div className="absolute -right-20 -top-20 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="relative z-10 max-w-3xl space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 fill-amber-400" />
-            <span>PALAMNERPALACE — Short Video Commerce</span>
+    <div className="bg-white min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+        {/* Black Premium Hero Banner */}
+        <section className="bg-black border border-neutral-800 rounded-3xl p-6 sm:p-12 shadow-2xl relative overflow-hidden text-white">
+          <div className="absolute -right-20 -top-20 w-96 h-96 bg-[#E50914]/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="relative z-10 max-w-3xl space-y-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/30 text-[#E50914] text-xs font-black uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 fill-[#E50914]" />
+              <span>PALAMNERPALACE — AI & SOCIAL COMMERCE</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+              Discover through <span className="text-[#E50914]">Reels</span>.<br />
+              Shop instantly in-stream.
+            </h1>
+
+            <p className="text-neutral-300 text-xs sm:text-base leading-relaxed">
+              Experience the next generation of social commerce. Watch short video advertisements created with Gemini AI, shop handwoven silks, regional handicrafts, and daily flash deals.
+            </p>
+
+            <div className="flex flex-wrap gap-3 pt-2">
+              <Link
+                to="/reels"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#E50914] hover:bg-[#B20710] text-white font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-red-600/30 transition-all"
+              >
+                <Film className="w-4 h-4" />
+                <span>Explore Shoppable Reels</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+
+              <Link
+                to="/admin/advertisements/create"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs sm:text-sm rounded-xl border border-neutral-700 transition-all"
+              >
+                <Wand2 className="w-4 h-4 text-[#E50914]" />
+                <span>AI Ad Studio</span>
+              </Link>
+            </div>
           </div>
+        </section>
 
-          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
-            Discover through <span className="text-amber-400">Reels</span>.<br />
-            Shop instantly in-stream.
-          </h1>
-
-          <p className="text-slate-300 text-xs sm:text-base leading-relaxed">
-            Welcome to PalamnerPalace — modern Indian e-commerce integrated with social short-video shopping. Browse authentic silk sarees, artisan handicrafts, electronics, and daily deals.
-          </p>
-
-          <div className="flex flex-wrap gap-3 pt-2">
-            <Link
-              to="/reels"
-              className="inline-flex items-center gap-2 px-5 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs sm:text-sm rounded-xl shadow-lg hover:shadow-amber-500/25 transition-all"
-            >
-              <Film className="w-4 h-4" />
-              <span>Explore Reels Feed</span>
-              <ArrowRight className="w-4 h-4" />
+        {/* Categories Showcase */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between border-b border-neutral-200 pb-3">
+            <div>
+              <h2 className="text-xl font-black text-black tracking-tight">Browse Categories</h2>
+              <p className="text-xs text-neutral-500 mt-0.5">Curated departments and regional artisan crafts</p>
+            </div>
+            <Link to="/categories" className="text-xs font-bold text-[#E50914] hover:underline flex items-center gap-1">
+              <span>View All</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
-
-            <Link
-              to="/products"
-              className="inline-flex items-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs sm:text-sm rounded-xl border border-slate-700 transition-all"
-            >
-              <ShoppingBag className="w-4 h-4" />
-              <span>Browse Products</span>
-            </Link>
           </div>
-        </div>
-      </section>
 
-      {/* Categories Showcase */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-extrabold text-white tracking-tight">Browse Categories</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Explore curated departments and regional crafts</p>
-          </div>
-          <Link to="/categories" className="text-xs font-bold text-amber-400 hover:underline flex items-center gap-1">
-            <span>View All</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categories.slice(0, 6).map((category) => (
-            <CategoryCard key={category.id} category={category} />
-          ))}
-        </div>
-      </section>
-
-      {/* Featured Products */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
-              <Award className="w-5 h-5 text-amber-400" />
-              <span>Featured Products</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">Top-rated items handpicked for you</p>
-          </div>
-          <Link to="/products" className="text-xs font-bold text-amber-400 hover:underline flex items-center gap-1">
-            <span>See All Products</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {loadingData ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <ProductSkeleton />
-            <ProductSkeleton />
-            <ProductSkeleton />
-            <ProductSkeleton />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.slice(0, 8).map((product) => (
-              <ProductCard key={product.id} product={product} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {categories.slice(0, 6).map((category) => (
+              <CategoryCard key={category.id} category={category} />
             ))}
           </div>
-        )}
-      </section>
+        </section>
 
-      {/* Reels Commerce Showcase */}
-      <section className="bg-slate-900/80 border border-amber-500/30 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-[11px] font-bold uppercase tracking-wider mb-2">
-              <Film className="w-3.5 h-3.5" />
-              <span>Video Commerce</span>
-            </div>
-            <h2 className="text-2xl font-black text-white">Live Reels Shopping Experience</h2>
-            <p className="text-xs text-slate-400 mt-1">Watch real creators demo products and buy directly in-stream.</p>
-          </div>
-
-          <Link
-            to="/reels"
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-all shrink-0"
-          >
-            Launch Reels Feed
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
-          {reels.map((reel) => (
-            <ReelCard key={reel.id} reel={reel} />
-          ))}
-        </div>
-      </section>
-
-      {/* Preserved MERN Stack Health Telemetry */}
-      <section className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-          <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
-              <span>MERN Stack Health & Telemetry</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Live Express REST API & MongoDB connection status for PalamnerPalace backend.
-            </p>
-          </div>
-
-          <button
-            onClick={checkHealth}
-            disabled={healthLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg border border-slate-700 transition-all disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${healthLoading ? 'animate-spin' : ''}`} />
-            <span>Re-check</span>
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-400">
-                <Server className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="text-xs text-slate-400 font-medium">Express Node Server</div>
-                <div className="text-sm font-bold text-slate-200">Backend REST API (:5000)</div>
-              </div>
-            </div>
-
+        {/* Featured Products */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between border-b border-neutral-200 pb-3">
             <div>
-              {healthLoading ? (
-                <span className="text-xs text-slate-400 animate-pulse">Checking...</span>
-              ) : health?.success ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-extrabold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                  Connected
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-extrabold">
-                  Offline
-                </span>
-              )}
+              <h2 className="text-xl font-black text-black tracking-tight flex items-center gap-2">
+                <Award className="w-5 h-5 text-[#E50914]" />
+                <span>Featured Catalog</span>
+              </h2>
+              <p className="text-xs text-neutral-500 mt-0.5">Top-rated items handpicked for you</p>
             </div>
+            <Link to="/products" className="text-xs font-bold text-[#E50914] hover:underline flex items-center gap-1">
+              <span>See All Products</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
-          <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400">
-                <Database className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="text-xs text-slate-400 font-medium">Database Layer</div>
-                <div className="text-sm font-bold text-slate-200">MongoDB Mongoose</div>
-              </div>
+          {loadingData ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <ProductSkeleton />
+              <ProductSkeleton />
+              <ProductSkeleton />
+              <ProductSkeleton />
             </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {products.slice(0, 8).map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+        </section>
 
+        {/* Black Premium Section: Live Shoppable Reels */}
+        <section className="bg-black border border-neutral-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl text-white">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-neutral-800 pb-4">
             <div>
-              {healthLoading ? (
-                <span className="text-xs text-slate-400 animate-pulse">Checking...</span>
-              ) : health?.data?.database === 'Connected' ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-extrabold">
-                  Connected
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-extrabold">
-                  Disconnected
-                </span>
-              )}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600/20 text-[#E50914] text-[11px] font-bold uppercase tracking-wider mb-2">
+                <Film className="w-3.5 h-3.5" />
+                <span>Trending Short Videos</span>
+              </div>
+              <h2 className="text-2xl font-black text-white">Live Reels Shopping Feed</h2>
+              <p className="text-xs text-neutral-400 mt-1">Watch video ads and click Shop Now to buy tagged products instantly.</p>
+            </div>
+
+            <Link
+              to="/reels"
+              className="px-4 py-2 bg-[#E50914] hover:bg-[#B20710] text-white font-bold text-xs rounded-xl shadow transition-all shrink-0"
+            >
+              Launch Reels Feed
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+            {reels.map((reel) => (
+              <ReelCard key={reel.id || reel._id} reel={reel} />
+            ))}
+          </div>
+        </section>
+
+        {/* MERN Stack Health Telemetry */}
+        <section className="bg-neutral-50 border border-neutral-200 rounded-2xl p-6 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-neutral-200 pb-4">
+            <div>
+              <h2 className="text-lg font-bold text-black flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                <span>MERN Stack System Telemetry</span>
+              </h2>
+              <p className="text-xs text-neutral-500 mt-1">
+                Live Express REST API & MongoDB connection status for PalamnerPalace backend.
+              </p>
+            </div>
+
+            <button
+              onClick={checkHealth}
+              disabled={healthLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-neutral-100 text-black text-xs font-bold rounded-lg border border-neutral-300 transition-all disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${healthLoading ? 'animate-spin' : ''}`} />
+              <span>Re-check</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-white border border-neutral-200 rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-blue-50 text-blue-600">
+                  <Server className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs text-neutral-500 font-medium">Express Node Server</div>
+                  <div className="text-sm font-bold text-black">Backend REST API (:5000)</div>
+                </div>
+              </div>
+
+              <div>
+                {healthLoading ? (
+                  <span className="text-xs text-neutral-400 animate-pulse">Checking...</span>
+                ) : health?.success ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-700 text-xs font-black">
+                    Connected
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 border border-red-300 text-red-700 text-xs font-black">
+                    Offline
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white border border-neutral-200 rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-red-50 text-[#E50914]">
+                  <Database className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs text-neutral-500 font-medium">Database Layer</div>
+                  <div className="text-sm font-bold text-black">MongoDB Mongoose</div>
+                </div>
+              </div>
+
+              <div>
+                {healthLoading ? (
+                  <span className="text-xs text-neutral-400 animate-pulse">Checking...</span>
+                ) : health?.data?.database === 'Connected' ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-700 text-xs font-black">
+                    Connected
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-xs font-black">
+                    Fallback Mode
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-
-        {health && (
-          <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
-            <span>Message: {health.message}</span>
-            <span>Server Time: {new Date(health.timestamp).toLocaleTimeString()}</span>
-          </div>
-        )}
-      </section>
+        </section>
+      </div>
     </div>
   );
 };

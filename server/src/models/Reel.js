@@ -9,7 +9,7 @@ const reelSchema = new mongoose.Schema(
       verified: { type: Boolean, default: false }
     },
     caption: { type: String, required: true },
-    videoPoster: { type: String, required: true },
+    videoPoster: { type: String },
     videoUrl: { type: String },
     likesCount: { type: Number, default: 0 },
     commentsCount: { type: Number, default: 0 },
@@ -21,7 +21,8 @@ const reelSchema = new mongoose.Schema(
       originalPrice: { type: Number },
       discount: { type: String },
       image: { type: String }
-    }
+    },
+    advertisementId: { type: mongoose.Schema.Types.ObjectId, ref: 'Advertisement' }
   },
   { timestamps: true }
 );

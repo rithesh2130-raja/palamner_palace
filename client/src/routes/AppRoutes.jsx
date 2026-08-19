@@ -15,6 +15,10 @@ import { WishlistPage } from '../pages/customer/WishlistPage.jsx';
 import { OrdersPage } from '../pages/customer/OrdersPage.jsx';
 import { AccountPage } from '../pages/customer/AccountPage.jsx';
 import { NotFoundPage } from '../pages/customer/NotFoundPage.jsx';
+
+import { AdminAdvertisementsPage } from '../pages/admin/AdminAdvertisementsPage.jsx';
+import { AdminCreateAdvertisementPage } from '../pages/admin/AdminCreateAdvertisementPage.jsx';
+
 import { PlaceholderPage } from '../pages/common/PlaceholderPage.jsx';
 
 export const AppRoutes = () => {
@@ -51,6 +55,8 @@ export const AppRoutes = () => {
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<PlaceholderPage title="Executive Admin Dashboard" dayPlanned="Day 17" />} />
         <Route path="products" element={<PlaceholderPage title="Admin Product Catalog" dayPlanned="Day 17" />} />
+        <Route path="advertisements" element={<AdminAdvertisementsPage />} />
+        <Route path="advertisements/create" element={<AdminCreateAdvertisementPage />} />
         <Route path="orders" element={<PlaceholderPage title="Admin Order Fulfillment" dayPlanned="Day 17" />} />
         <Route path="customers" element={<PlaceholderPage title="Admin User Management" dayPlanned="Day 17" />} />
         <Route path="creators" element={<PlaceholderPage title="Admin Creator Verification" dayPlanned="Day 17" />} />

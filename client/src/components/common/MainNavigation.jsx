@@ -14,7 +14,7 @@ export const MainNavigation = () => {
   ];
 
   return (
-    <nav className="hidden md:block bg-slate-900/80 border-b border-slate-800 backdrop-blur-md">
+    <nav className="hidden md:block bg-neutral-900 border-b border-neutral-800 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-1 overflow-x-auto py-2.5 scrollbar-none">
           {navItems.map((item) => {
@@ -25,14 +25,14 @@ export const MainNavigation = () => {
                 to={item.to}
                 end={item.to === '/'}
                 className={({ isActive }) =>
-                  `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                  `flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
                     item.highlight
                       ? isActive
-                        ? 'bg-amber-500 text-slate-950 font-extrabold shadow-md shadow-amber-500/20'
-                        : 'bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
+                        ? 'bg-[#E50914] text-white shadow-md'
+                        : 'bg-red-600/20 border border-red-500/40 text-red-400 hover:bg-red-600/30'
                       : isActive
-                      ? 'bg-slate-800 text-amber-400 font-bold border border-slate-700'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                      ? 'bg-[#E50914] text-white font-extrabold shadow-sm'
+                      : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
                   }`
                 }
               >
