@@ -3,8 +3,8 @@ import mongoose from 'mongoose';
 const advertisementSchema = new mongoose.Schema(
   {
     product: {
-      id: { type: String, required: true },
-      title: { type: String, required: true },
+      id: { type: String },
+      title: { type: String },
       brand: { type: String },
       price: { type: Number },
       originalPrice: { type: Number },
@@ -12,48 +12,16 @@ const advertisementSchema = new mongoose.Schema(
       description: { type: String },
       image: { type: String }
     },
-    createdBy: { type: String, default: 'Admin' },
-    objective: {
-      type: String,
-      enum: [
-        'Product Launch',
-        'Flash Sale',
-        'Discount Promotion',
-        'New Arrival',
-        'Brand Awareness',
-        'Festival Campaign',
-        'Limited Stock',
-        'Clearance Sale'
-      ],
-      default: 'Product Launch'
-    },
-    targetAudience: { type: String, default: 'General Shoppers' },
-    tone: {
-      type: String,
-      enum: ['Premium', 'Energetic', 'Minimal', 'Luxury', 'Youthful', 'Urgent', 'Emotional', 'Modern'],
-      default: 'Energetic'
-    },
-    visualStyle: {
-      type: String,
-      enum: [
-        'Cinematic',
-        'Minimal Product Showcase',
-        'Luxury Commercial',
-        'Fast-Paced Social Ad',
-        'Lifestyle',
-        'Studio Product Shot',
-        'Festival Promotion'
-      ],
-      default: 'Cinematic'
-    },
-    callToAction: { type: String, default: 'Shop Now' },
-    duration: { type: String, default: '8 seconds' },
+    uploadedImageUrl: { type: String },
+    prompt: { type: String, required: true },
+    style: { type: String, default: 'Cinematic' },
     aspectRatio: { type: String, default: '9:16' },
-    prompt: { type: String },
+    duration: { type: String, default: '8 seconds' },
+    createdBy: { type: String, default: 'Admin' },
     status: {
       type: String,
       enum: ['queued', 'processing', 'completed', 'failed'],
-      default: 'completed'
+      default: 'processing'
     },
     videoUrl: { type: String },
     thumbnailUrl: { type: String },

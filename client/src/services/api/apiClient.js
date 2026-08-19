@@ -11,7 +11,7 @@ class ApiClient {
 
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined) {
+        if (value !== undefined && value !== null) {
           url.searchParams.append(key, String(value));
         }
       });
@@ -41,13 +41,17 @@ class ApiClient {
 
   async post(path, body, options) {
     const url = this.buildUrl(path, options?.params);
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+
+    const headers = { ...options?.headers };
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
+
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-      body: JSON.stringify(body),
+      headers,
+      body: isFormData ? body : JSON.stringify(body),
       ...options,
     });
 

@@ -1,82 +1,99 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { productService } from '../../services/api/productApi.js';
 import { advertisementService } from '../../services/api/advertisementApi.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { Button } from '../../components/ui/Button.jsx';
-import { Sparkles, Wand2, Film, CheckCircle2, RefreshCw, ArrowLeft, Send, AlertCircle } from 'lucide-react';
+import { Sparkles, Wand2, Film, RefreshCw, ArrowLeft, Send, Upload, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export const AdminCreateAdvertisementPage = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const fileInputRef = useRef(null);
 
-  const [products, setProducts] = useState([]);
-  const [selectedProductId, setSelectedProductId] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  // File Upload & Preview State
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
-  const [objective, setObjective] = useState('Product Launch');
-  const [targetAudience, setTargetAudience] = useState('General Shoppers');
-  const [tone, setTone] = useState('Energetic');
+  // Form Inputs
+  const [description, setDescription] = useState(
+    'Create a cinematic luxury advertisement. Slowly rotate around the product, use dramatic lighting, show close-up details, then reveal the complete product. Finish with a premium Shop Now moment.'
+  );
   const [visualStyle, setVisualStyle] = useState('Cinematic');
-  const [callToAction, setCallToAction] = useState('Shop Now');
   const [duration, setDuration] = useState('8 seconds');
-  const [aspectRatio, setAspectRatio] = useState('9:16');
 
+  // Generation Lifecycle States
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState('');
   const [generatedAd, setGeneratedAd] = useState(null);
   const [generationError, setGenerationError] = useState(null);
+  const [videoLoadError, setVideoLoadError] = useState(false);
 
+  // Conversational AI Edit State
   const [editInstruction, setEditInstruction] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
-  useEffect(() => {
-    productService.getProducts().then((prods) => {
-      setProducts(prods);
-      if (prods.length > 0) {
-        setSelectedProductId(prods[0].id);
-        setSelectedProduct(prods[0]);
-      }
-    });
-  }, []);
-
-  const handleProductSelect = (id) => {
-    setSelectedProductId(id);
-    const prod = products.find((p) => p.id === id);
-    setSelectedProduct(prod);
+  // Handle File Drag & Drop or Input Change
+  const handleFileChange = (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select a valid image file (JPG, PNG, WEBP)', 'error');
+      return;
+    }
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
   };
 
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileChange(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // PART 7 — FRONTEND GENERATION REQUEST
   const handleGenerateAd = async (e) => {
     if (e) e.preventDefault();
-    if (!selectedProduct) {
-      showToast('Please select a product first', 'error');
+    if (!description.trim()) {
+      showToast('Please enter an advertisement description', 'error');
       return;
     }
 
     setIsGenerating(true);
     setGenerationError(null);
+    setVideoLoadError(false);
     setGenerationStep('Creating your PalamnerPalace advertisement...');
 
     try {
-      setTimeout(() => setGenerationStep('Analyzing product details & image...'), 400);
-      setTimeout(() => setGenerationStep('Calling Gemini Omni Flash video engine...'), 1000);
+      setTimeout(() => setGenerationStep('Uploading reference image to backend...'), 300);
+      setTimeout(() => setGenerationStep('Calling Gemini Omni Flash video engine...'), 900);
 
-      const result = await advertisementService.generateAdvertisement({
-        product: selectedProduct,
-        objective,
-        targetAudience,
-        tone,
-        visualStyle,
-        callToAction,
-        duration,
-        aspectRatio,
-      });
+      const formData = new FormData();
+      if (selectedFile) {
+        formData.append('image', selectedFile);
+      }
+      formData.append('prompt', description.trim());
+      formData.append('style', visualStyle);
+      formData.append('aspectRatio', '9:16');
+      formData.append('duration', duration);
 
-      const adData = result?.data || result?.advertisement || result;
+      const result = await advertisementService.generateAdvertisement(formData);
+      const adData = result?.advertisement || result?.data || result;
+
       setGeneratedAd(adData);
-      showToast('AI Advertisement generated successfully!', 'success');
+      showToast('AI Advertisement video generated successfully!', 'success');
     } catch (err) {
-      const errMsg = err.message || 'Failed to generate advertisement. Please verify Gemini API connectivity.';
+      console.error('Generation Error:', err);
+      const errMsg = err.message || 'Video advertisement generation failed';
       setGenerationError(errMsg);
       showToast(errMsg, 'error');
     } finally {
@@ -91,11 +108,11 @@ export const AdminCreateAdvertisementPage = () => {
     try {
       const result = await advertisementService.editAdvertisement(
         generatedAd._id || generatedAd.id,
-        editInstruction
+        editInstruction.trim()
       );
-      setGeneratedAd(result.data || result);
+      setGeneratedAd(result.advertisement || result.data || result);
       setEditInstruction('');
-      showToast('AI Edit applied to advertisement!', 'success');
+      showToast('AI Edit applied to video!', 'success');
     } catch (err) {
       showToast(err.message || 'Failed to apply AI edit', 'error');
     } finally {
@@ -132,92 +149,86 @@ export const AdminCreateAdvertisementPage = () => {
             <span>AI ADVERTISEMENT STUDIO</span>
           </h1>
           <p className="text-xs text-neutral-400 mt-0.5">
-            Create scroll-stopping vertical 9:16 product advertisements using Google's Gemini Omni Flash.
+            Upload a reference image, describe video movement, and generate 9:16 AI ads with Gemini Omni Flash.
           </p>
         </div>
       </div>
 
-      {/* Two Column Layout */}
+      {/* Two Column Studio Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Form (7 cols) */}
+        {/* Left Column: Input Controls (7 cols) */}
         <div className="lg:col-span-7 bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl space-y-6">
           <form onSubmit={handleGenerateAd} className="space-y-5">
-            {/* Product Selection */}
+            {/* PART 2 — UPLOAD REFERENCE IMAGE */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-white uppercase tracking-wider">
-                Select Catalog Product
+                Upload Reference Image (Optional)
               </label>
-              <select
-                value={selectedProductId}
-                onChange={(e) => handleProductSelect(e.target.value)}
-                className="w-full bg-black border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E50914]"
-              >
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title} — ₹{p.price} ({p.brand})
-                  </option>
-                ))}
-              </select>
-            </div>
 
-            {/* Selected Product Quick Card */}
-            {selectedProduct && (
-              <div className="p-3 bg-black border border-neutral-800 rounded-xl flex items-center gap-3">
-                <img
-                  src={selectedProduct.image}
-                  alt={selectedProduct.title}
-                  className="w-12 h-12 rounded-lg object-cover border border-neutral-700"
-                />
-                <div className="text-xs">
-                  <div className="font-bold text-white">{selectedProduct.title}</div>
-                  <div className="text-neutral-400">
-                    Price: ₹{selectedProduct.price} • Brand: {selectedProduct.brand}
+              {!previewUrl ? (
+                <div
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-neutral-700 hover:border-[#E50914] rounded-2xl p-8 text-center cursor-pointer transition-all bg-black/50 hover:bg-black group"
+                >
+                  <Upload className="w-10 h-10 text-neutral-500 group-hover:text-[#E50914] mx-auto mb-2 transition-colors" />
+                  <div className="text-sm font-bold text-white">Drag & Drop product or reference image</div>
+                  <div className="text-xs text-neutral-400 mt-1">Supports JPG, JPEG, PNG, WEBP (Up to 15MB)</div>
+                  <button
+                    type="button"
+                    className="mt-3 px-4 py-1.5 bg-neutral-800 text-xs font-bold text-white rounded-lg group-hover:bg-[#E50914]"
+                  >
+                    Browse Image
+                  </button>
+                </div>
+              ) : (
+                <div className="relative aspect-video w-full bg-black rounded-2xl overflow-hidden border border-neutral-700 group">
+                  <img src={previewUrl} alt="Upload Preview" className="w-full h-full object-contain" />
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 bg-white text-black font-bold text-xs rounded-lg hover:bg-neutral-200"
+                    >
+                      Change Image
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="px-3 py-1.5 bg-red-600 text-white font-bold text-xs rounded-lg hover:bg-red-700"
+                    >
+                      Remove
+                    </button>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Campaign Objective & Tone */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-neutral-300">Campaign Objective</label>
-                <select
-                  value={objective}
-                  onChange={(e) => setObjective(e.target.value)}
-                  className="w-full bg-black border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
-                >
-                  <option value="Product Launch">Product Launch</option>
-                  <option value="Flash Sale">Flash Sale</option>
-                  <option value="Discount Promotion">Discount Promotion</option>
-                  <option value="New Arrival">New Arrival</option>
-                  <option value="Brand Awareness">Brand Awareness</option>
-                  <option value="Festival Campaign">Festival Campaign</option>
-                  <option value="Limited Stock">Limited Stock</option>
-                  <option value="Clearance Sale">Clearance Sale</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-neutral-300">Tone</label>
-                <select
-                  value={tone}
-                  onChange={(e) => setTone(e.target.value)}
-                  className="w-full bg-black border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
-                >
-                  <option value="Energetic">Energetic</option>
-                  <option value="Premium">Premium</option>
-                  <option value="Minimal">Minimal</option>
-                  <option value="Luxury">Luxury</option>
-                  <option value="Youthful">Youthful</option>
-                  <option value="Urgent">Urgent</option>
-                  <option value="Emotional">Emotional</option>
-                  <option value="Modern">Modern</option>
-                </select>
-              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => handleFileChange(e.target.files?.[0])}
+                className="hidden"
+              />
             </div>
 
-            {/* Visual Style & CTA */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* PART 4 — DESCRIPTION TEXTAREA */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-white uppercase tracking-wider">
+                Describe Your Advertisement
+              </label>
+              <textarea
+                rows={4}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe how you want your product advertisement to look and move..."
+                className="w-full bg-black border border-neutral-700 rounded-xl p-4 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#E50914] leading-relaxed"
+              />
+            </div>
+
+            {/* PART 5 — OPTIONAL SETTINGS */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-neutral-300">Visual Style</label>
                 <select
@@ -226,34 +237,24 @@ export const AdminCreateAdvertisementPage = () => {
                   className="w-full bg-black border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
                 >
                   <option value="Cinematic">Cinematic</option>
-                  <option value="Minimal Product Showcase">Minimal Product Showcase</option>
-                  <option value="Luxury Commercial">Luxury Commercial</option>
-                  <option value="Fast-Paced Social Ad">Fast-Paced Social Ad</option>
+                  <option value="Luxury">Luxury</option>
+                  <option value="Minimal">Minimal</option>
                   <option value="Lifestyle">Lifestyle</option>
-                  <option value="Studio Product Shot">Studio Product Shot</option>
-                  <option value="Festival Promotion">Festival Promotion</option>
+                  <option value="Fast-paced">Fast-paced</option>
+                  <option value="Product showcase">Product showcase</option>
                 </select>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-neutral-300">Call to Action (CTA)</label>
-                <select
-                  value={callToAction}
-                  onChange={(e) => setCallToAction(e.target.value)}
-                  className="w-full bg-black border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
-                >
-                  <option value="Shop Now">Shop Now</option>
-                  <option value="Buy Now">Buy Now</option>
-                  <option value="Explore Now">Explore Now</option>
-                  <option value="Limited Time Offer">Limited Time Offer</option>
-                  <option value="Get Yours Today">Get Yours Today</option>
-                  <option value="Discover More">Discover More</option>
-                </select>
+                <label className="block text-xs font-bold text-neutral-300">Aspect Ratio</label>
+                <input
+                  type="text"
+                  value="9:16"
+                  readOnly
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-400 font-bold"
+                />
               </div>
-            </div>
 
-            {/* Duration & Aspect Ratio */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-neutral-300">Duration</label>
                 <select
@@ -266,86 +267,93 @@ export const AdminCreateAdvertisementPage = () => {
                   <option value="10 seconds">10 seconds</option>
                 </select>
               </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-neutral-300">Aspect Ratio</label>
-                <input
-                  type="text"
-                  value={aspectRatio}
-                  readOnly
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-400 font-bold"
-                />
-              </div>
             </div>
 
-            {/* Generate CTA */}
+            {/* PART 6 — GENERATE BUTTON */}
             <Button
               type="submit"
               variant="primary"
               size="lg"
-              className="w-full shadow-lg shadow-red-600/30"
+              className="w-full shadow-lg shadow-red-600/30 text-sm tracking-wide"
               isLoading={isGenerating}
             >
               <Sparkles className="w-5 h-5" />
-              <span>GENERATE ADVERTISEMENT</span>
+              <span>✨ GENERATE VIDEO</span>
             </Button>
           </form>
         </div>
 
-        {/* Right Column: Preview & AI Editing (5 cols) */}
+        {/* Right Column: Preview & Output (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl space-y-4">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
               <Film className="w-4 h-4 text-[#E50914]" />
-              <span>Advertisement Preview (9:16)</span>
+              <span>Video Preview (9:16)</span>
             </h3>
 
+            {/* PART 19 — GENERATION STATUS UI */}
             {isGenerating ? (
               <div className="w-full aspect-[9/16] bg-black rounded-2xl border border-neutral-800 flex flex-col items-center justify-center p-6 text-center space-y-4 animate-pulse">
                 <Wand2 className="w-10 h-10 text-[#E50914] animate-bounce" />
                 <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-white uppercase tracking-wider">GENERATING YOUR AD</h4>
-                  <p className="text-xs text-neutral-400 font-medium">{generationStep || 'Creating your PalamnerPalace advertisement...'}</p>
+                  <h4 className="text-sm font-black text-white uppercase tracking-wider">AI IS CREATING YOUR VIDEO</h4>
+                  <p className="text-xs text-neutral-400 font-medium">Your advertisement is being generated with Gemini...</p>
+                  <p className="text-[11px] text-[#E50914] font-bold mt-2">{generationStep}</p>
                 </div>
               </div>
             ) : generationError ? (
+              /* Failure State */
               <div className="p-5 bg-red-950/80 border border-red-600 rounded-2xl space-y-3 text-left">
                 <div className="flex items-center gap-2 text-red-400 font-black text-xs uppercase tracking-wider">
                   <AlertCircle className="w-4 h-4" />
-                  <span>ADVERTISEMENT GENERATION FAILED</span>
+                  <span>VIDEO GENERATION FAILED</span>
                 </div>
                 <p className="text-xs text-red-200 leading-relaxed">{generationError}</p>
                 <Button variant="outline" size="sm" onClick={handleGenerateAd}>
                   <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Try Again</span>
+                  <span>Retry</span>
                 </Button>
               </div>
             ) : generatedAd ? (
+              /* PART 21 — SUCCESS PREVIEW WITH REAL VIDEO */
               <div className="space-y-4">
-                {/* 9:16 Video Player Container */}
                 <div className="relative aspect-[9/16] w-full max-w-[280px] mx-auto bg-black rounded-2xl overflow-hidden border-2 border-[#E50914] shadow-2xl group">
-                  <video
-                    controls
-                    playsInline
-                    preload="metadata"
-                    muted
-                    src={generatedAd.videoUrl}
-                    poster={generatedAd.thumbnailUrl || selectedProduct?.image}
-                    className="w-full h-full object-cover"
-                  />
+                  {videoLoadError ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center space-y-2 bg-neutral-950 text-red-400">
+                      <AlertCircle className="w-8 h-8" />
+                      <div className="text-xs font-bold">Generated video could not be loaded.</div>
+                      <button
+                        onClick={() => setVideoLoadError(false)}
+                        className="px-3 py-1 bg-red-600 text-white rounded text-xs font-bold"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : (
+                    <video
+                      controls
+                      playsInline
+                      preload="metadata"
+                      muted
+                      src={generatedAd.videoUrl}
+                      poster={previewUrl || generatedAd.thumbnailUrl}
+                      onError={() => setVideoLoadError(true)}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
 
                   <div className="absolute top-3 left-3 bg-[#E50914] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase pointer-events-none">
-                    {generatedAd.objective || objective}
+                    VIDEO READY
                   </div>
                 </div>
 
-                {/* Conversational AI Editing */}
+                {/* Conversational AI Edit */}
                 <div className="pt-2 border-t border-neutral-800 space-y-2">
                   <label className="block text-xs font-bold text-white">Conversational AI Edit</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
-                      placeholder="Tell AI what to change (e.g. Make lighting dramatic)..."
+                      placeholder="Tell AI what to change (e.g. Change lighting to dramatic)..."
                       value={editInstruction}
                       onChange={(e) => setEditInstruction(e.target.value)}
                       className="w-full bg-black border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
@@ -360,24 +368,16 @@ export const AdminCreateAdvertisementPage = () => {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
+                {/* PART 24 — ACTION BUTTONS (PUBLISH AS REEL) */}
                 <div className="grid grid-cols-2 gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGenerateAd}
-                  >
+                  <Button variant="outline" size="sm" onClick={handleGenerateAd}>
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>Regenerate</span>
                   </Button>
 
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={handlePublishAsReel}
-                  >
+                  <Button variant="primary" size="sm" onClick={handlePublishAsReel}>
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>Publish Reel</span>
+                    <span>PUBLISH AS REEL</span>
                   </Button>
                 </div>
               </div>
@@ -385,7 +385,7 @@ export const AdminCreateAdvertisementPage = () => {
               <div className="w-full aspect-[9/16] bg-black rounded-2xl border border-neutral-800 flex flex-col items-center justify-center p-6 text-center space-y-3">
                 <Film className="w-10 h-10 text-neutral-600" />
                 <p className="text-xs text-neutral-400">
-                  Fill out the advertisement options on the left and click <strong>Generate Advertisement</strong> to view real-time 9:16 AI video rendering.
+                  Upload an image and describe your advertisement on the left, then click <strong>✨ GENERATE VIDEO</strong> to view real 9:16 AI video rendering.
                 </p>
               </div>
             )}
