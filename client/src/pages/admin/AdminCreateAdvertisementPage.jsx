@@ -346,18 +346,22 @@ export const AdminCreateAdvertisementPage = () => {
                     <div className="flex-1 bg-amber-950/90 flex flex-col items-center justify-center p-4 text-center space-y-2">
                       <AlertTriangle className="w-7 h-7 text-amber-400" />
                       <div className="text-[11px] font-black text-amber-300 uppercase tracking-wider">
-                        fal.ai Video Generation Error
+                        {generatedAd.errorMessage?.includes('balance') || generatedAd.errorMessage?.includes('locked')
+                          ? 'fal.ai Balance Exhausted'
+                          : 'fal.ai Video Generation Error'}
                       </div>
                       <p className="text-[10px] text-amber-200 leading-relaxed">
-                        {generatedAd.errorMessage || 'Video generation failed. Check your fal.ai API key and account credits.'}
+                        {generatedAd.errorMessage?.includes('balance') || generatedAd.errorMessage?.includes('locked')
+                          ? 'Your fal.ai account has run out of credits. Top up your balance to generate real AI product videos.'
+                          : generatedAd.errorMessage || 'Video generation failed. Check your fal.ai API key.'}
                       </p>
                       <a
-                        href="https://fal.ai/dashboard"
+                        href="https://fal.ai/dashboard/billing"
                         target="_blank"
                         rel="noreferrer"
                         className="mt-1 px-3 py-1 bg-amber-500 hover:bg-amber-400 text-black font-black text-[10px] rounded-lg uppercase tracking-wide"
                       >
-                        Check fal.ai Dashboard →
+                        Top Up fal.ai Balance →
                       </a>
                     </div>
                     {/* Badge */}

@@ -4,7 +4,6 @@ import crypto from 'crypto';
 import https from 'https';
 import http from 'http';
 import { fileURLToPath } from 'url';
-import { fal } from '@fal-ai/client';
 import sharp from 'sharp';
 import { env } from '../config/env.js';
 
@@ -37,15 +36,6 @@ function downloadBuffer(url) {
 }
 
 /**
- * Validates MP4 ftyp box signature
- */
-function isValidMp4Buffer(buffer) {
-  if (!buffer || !Buffer.isBuffer(buffer) || buffer.length < 10000) return false;
-  const header = buffer.slice(4, 8).toString('ascii');
-  return header === 'ftyp';
-}
-
-/**
  * Creates a 9:16 vertical product composite poster using sharp
  */
 export async function createVerticalProductComposite(imageBuffer, generationId) {
@@ -73,6 +63,89 @@ export async function createVerticalProductComposite(imageBuffer, generationId) 
 }
 
 /**
+ * Upload image to fal.ai CDN using REST API with correct endpoint
+ */
+async function uploadToFalStorage(imageBuffer, imageMimeType, filename, falKey) {
+  // Method 1: fal.ai REST storage upload (correct endpoint from official docs)
+  try {
+    const uploadRes = await fetch('https://rest.alpha.fal.ai/storage/upload/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Key ${falKey}`,
+        'Content-Type': imageMimeType,
+        'X-Fal-File-Name': filename
+      },
+      body: imageBuffer
+    });
+
+    if (uploadRes.ok) {
+      const data = await uploadRes.json();
+      const url = data.url || data.access_url || data.file_url;
+      if (url) {
+        console.log('[fal.ai] ✅ REST storage upload succeeded:', url);
+        return url;
+      }
+    }
+    const errText = await uploadRes.text().catch(() => '');
+    console.warn('[fal.ai] REST upload status:', uploadRes.status, errText.substring(0, 100));
+  } catch (err) {
+    console.warn('[fal.ai] REST upload exception:', err.message);
+  }
+
+  // Method 2: fal.ai v1 storage endpoint
+  try {
+    const uploadRes2 = await fetch('https://fal.ai/api/files/upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Key ${falKey}`,
+        'Content-Type': imageMimeType,
+        'X-File-Name': filename
+      },
+      body: imageBuffer
+    });
+
+    if (uploadRes2.ok) {
+      const data = await uploadRes2.json();
+      const url = data.url || data.access_url;
+      if (url) {
+        console.log('[fal.ai] ✅ v1 API upload succeeded:', url);
+        return url;
+      }
+    }
+    console.warn('[fal.ai] v1 API upload status:', uploadRes2.status);
+  } catch (err) {
+    console.warn('[fal.ai] v1 API upload exception:', err.message);
+  }
+
+  // Method 3: fal.run multipart upload
+  try {
+    const form = new FormData();
+    form.append('file', new Blob([imageBuffer], { type: imageMimeType }), filename);
+    const uploadRes3 = await fetch('https://fal.run/fal-ai/storage', {
+      method: 'POST',
+      headers: { 'Authorization': `Key ${falKey}` },
+      body: form
+    });
+    if (uploadRes3.ok) {
+      const data = await uploadRes3.json();
+      const url = data.url || data.access_url;
+      if (url) {
+        console.log('[fal.ai] ✅ fal.run multipart upload succeeded:', url);
+        return url;
+      }
+    }
+    console.warn('[fal.ai] fal.run multipart upload status:', uploadRes3.status);
+  } catch (err) {
+    console.warn('[fal.ai] fal.run upload exception:', err.message);
+  }
+
+  // Method 4: base64 data URI (direct embed — many fal models support this)
+  const dataUri = `data:${imageMimeType};base64,${imageBuffer.toString('base64')}`;
+  console.log('[fal.ai] Using base64 data URI fallback, length:', dataUri.length);
+  return dataUri;
+}
+
+/**
  * Build advertisement prompt
  */
 export function buildAdvertisementPrompt({ userPrompt }) {
@@ -84,12 +157,12 @@ export function buildAdvertisementPrompt({ userPrompt }) {
 
 /**
  * MAIN: Generate video using fal.ai Wan 2.6 image-to-video
+ * Uses raw fetch to call fal.ai REST API directly — no SDK credential issues
  */
 export async function generateFalVideo({ generationId, userPrompt, imageInput, style = 'Cinematic' }) {
   const falKey = process.env.FAL_KEY || env.FAL_KEY;
   const isFalConfigured = Boolean(falKey && falKey.length > 10);
 
-  // Process image input
   let imageBuffer = null;
   let imageMimeType = 'image/jpeg';
 
@@ -98,22 +171,18 @@ export async function generateFalVideo({ generationId, userPrompt, imageInput, s
     imageMimeType = imageInput.mimetype || 'image/jpeg';
   }
 
-  if (!imageBuffer) {
-    throw new Error('Valid product reference image is required.');
-  }
+  if (!imageBuffer) throw new Error('Valid product reference image is required.');
 
   const inputImageHash = crypto.createHash('sha256').update(imageBuffer).digest('hex');
   const prompt = buildAdvertisementPrompt({ userPrompt });
-
-  // Generate 9:16 vertical composite poster
   const compositePosterUrl = await createVerticalProductComposite(imageBuffer, generationId);
 
   console.log('===========================================================');
   console.log('===== FAL.AI VIDEO GENERATION START =====');
-  console.log('generationId:    ', generationId);
-  console.log('inputImageHash:  ', inputImageHash);
-  console.log('prompt:          ', prompt.substring(0, 120) + '...');
-  console.log('falConfigured:   ', isFalConfigured);
+  console.log('generationId:  ', generationId);
+  console.log('falConfigured: ', isFalConfigured);
+  console.log('falKeyPrefix:  ', falKey ? falKey.substring(0, 20) + '...' : 'MISSING');
+  console.log('prompt:        ', prompt.substring(0, 100) + '...');
   console.log('===========================================================');
 
   const uniqueFilename = `advertisement-${generationId}.mp4`;
@@ -127,122 +196,109 @@ export async function generateFalVideo({ generationId, userPrompt, imageInput, s
 
   if (isFalConfigured) {
     try {
-      // Set FAL_KEY env var so @fal-ai/client picks it up automatically
-      process.env.FAL_KEY = falKey;
-      fal.config({ credentials: falKey });
-
-      // Step 1: Upload image to fal.ai storage
-      console.log('[fal.ai] Uploading product image to fal.ai CDN storage...');
       const ext = imageMimeType.includes('png') ? '.png' : imageMimeType.includes('webp') ? '.webp' : '.jpg';
       const uploadFilename = `product-${generationId}${ext}`;
 
-      let imageUrl = null;
+      // Step 1: Upload image to get a URL fal.ai can access
+      const imageUrl = await uploadToFalStorage(imageBuffer, imageMimeType, uploadFilename, falKey);
+      console.log('[fal.ai] Image URL obtained (first 80 chars):', imageUrl.substring(0, 80));
 
-      // Try SDK upload first (works on Node 20+)
-      try {
-        const blob = new Blob([imageBuffer], { type: imageMimeType });
-        // Node 20+ has globalThis.File
-        const fileObj = typeof globalThis.File !== 'undefined'
-          ? new globalThis.File([blob], uploadFilename, { type: imageMimeType })
-          : blob;
-        imageUrl = await fal.storage.upload(fileObj);
-        console.log('[fal.ai] SDK upload succeeded:', imageUrl);
-      } catch (uploadErr) {
-        console.warn('[fal.ai] SDK upload failed:', uploadErr.message, '— trying REST upload...');
+      // Step 2: Submit to Wan 2.6 via fal.ai REST API directly (bypass SDK credential issue)
+      console.log('[fal.ai] Submitting to fal-ai/wan/v2.6/image-to-video via REST...');
 
-        // REST fallback: POST to fal.ai upload endpoint
-        const formData = new FormData();
-        const blob = new Blob([imageBuffer], { type: imageMimeType });
-        formData.append('file', blob, uploadFilename);
-        
-        const uploadRes = await fetch('https://fal.run/fal-ai/storage', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Key ${falKey}`
-          },
-          body: formData
-        });
-
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          imageUrl = uploadData.url || uploadData.file_url;
-          console.log('[fal.ai] REST upload succeeded:', imageUrl);
-        } else {
-          console.warn('[fal.ai] https://fal.run/fal-ai/storage upload failed:', uploadRes.status, '— trying fallback REST endpoint...');
-          
-          const fallbackRes = await fetch('https://rest.alpha.fal.ai/storage/upload/', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Key ${falKey}`
-            },
-            body: formData
-          });
-          
-          if (fallbackRes.ok) {
-            const uploadData = await fallbackRes.json();
-            imageUrl = uploadData.url || uploadData.file_url;
-            console.log('[fal.ai] Fallback REST upload succeeded:', imageUrl);
-          } else {
-            const errText = await fallbackRes.text();
-            console.warn('[fal.ai] Fallback REST upload failed:', fallbackRes.status, errText.substring(0, 200));
-
-            // Last resort: use base64 data URI directly (some fal models accept it)
-            imageUrl = `data:${imageMimeType};base64,${imageBuffer.toString('base64')}`;
-            console.log('[fal.ai] Using base64 data URI fallback (length:', imageUrl.length, ')');
-          }
-        }
-      }
-
-      if (!imageUrl) {
-        throw new Error('fal.ai image upload failed — no valid image URL obtained');
-      }
-
-      // Step 2: Call Wan 2.6 image-to-video
-      console.log('[fal.ai] Calling fal-ai/wan/v2.6/image-to-video...');
-      const result = await fal.subscribe('fal-ai/wan/v2.6/image-to-video', {
-        input: {
+      const submitRes = await fetch('https://queue.fal.run/fal-ai/wan/v2.6/image-to-video', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Key ${falKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           image_url: imageUrl,
           prompt: prompt,
           resolution: '720p',
           duration: 5,
           negative_prompt: 'blurry, low quality, distorted, unrelated objects, roads, cars, people, traffic, text, watermark, scene cuts'
-        },
-        logs: true,
-        onQueueUpdate: (update) => {
-          if (update.status === 'IN_PROGRESS') {
-            const logMessages = update.logs?.map(l => l.message).join(' | ') || 'generating...';
-            console.log('[fal.ai] Progress:', logMessages.substring(0, 120));
-          }
-        }
+        })
       });
 
-      falRequestId = result.requestId || null;
-      const videoUrl = result.data?.video?.url || result.data?.video_url || null;
+      if (!submitRes.ok) {
+        const errBody = await submitRes.text();
+        const isBalanceError = errBody.includes('balance') || errBody.includes('locked') || errBody.includes('Exhausted');
+        const friendlyMsg = isBalanceError
+          ? 'fal.ai account balance exhausted. Top up at fal.ai/dashboard/billing.'
+          : `fal.ai submit failed: ${submitRes.status} — ${errBody.substring(0, 200)}`;
+        throw new Error(friendlyMsg);
+      }
 
-      console.log('[fal.ai] Result request ID:', falRequestId);
-      console.log('[fal.ai] Video URL:', videoUrl);
+      const submitData = await submitRes.json();
+      falRequestId = submitData.request_id;
+      console.log('[fal.ai] Job submitted. request_id:', falRequestId);
 
-      if (videoUrl) {
-        console.log('[fal.ai] Downloading generated video...');
-        const downloaded = await downloadBuffer(videoUrl);
-        if (downloaded && downloaded.length > 10000) {
-          videoBuffer = downloaded;
-          isRealFalOutput = true;
-          console.log('[fal.ai] ✅ Video downloaded successfully:', downloaded.length, 'bytes');
+      // Step 3: Poll for completion
+      let pollAttempts = 0;
+      const maxAttempts = 60; // 5 min max (5s * 60)
+      let resultData = null;
+
+      while (pollAttempts < maxAttempts) {
+        await new Promise(r => setTimeout(r, 5000)); // wait 5s
+        pollAttempts++;
+
+        const statusRes = await fetch(`https://queue.fal.run/fal-ai/wan/v2.6/image-to-video/requests/${falRequestId}/status`, {
+          headers: { 'Authorization': `Key ${falKey}` }
+        });
+
+        if (!statusRes.ok) {
+          console.warn('[fal.ai] Status check failed:', statusRes.status);
+          continue;
+        }
+
+        const statusData = await statusRes.json();
+        console.log(`[fal.ai] Poll ${pollAttempts}/${maxAttempts} — status: ${statusData.status}`);
+
+        if (statusData.status === 'COMPLETED') {
+          // Fetch result
+          const resultRes = await fetch(`https://queue.fal.run/fal-ai/wan/v2.6/image-to-video/requests/${falRequestId}`, {
+            headers: { 'Authorization': `Key ${falKey}` }
+          });
+          if (resultRes.ok) {
+            resultData = await resultRes.json();
+          }
+          break;
+        } else if (statusData.status === 'FAILED') {
+          throw new Error(`fal.ai job failed: ${JSON.stringify(statusData.error || statusData)}`);
         }
       }
+
+      if (resultData) {
+        const videoUrl = resultData.video?.url || resultData.output?.video?.url || null;
+        console.log('[fal.ai] Result video URL:', videoUrl);
+
+        if (videoUrl) {
+          const downloaded = await downloadBuffer(videoUrl);
+          if (downloaded && downloaded.length > 10000) {
+            videoBuffer = downloaded;
+            isRealFalOutput = true;
+            console.log('[fal.ai] ✅ Video downloaded:', downloaded.length, 'bytes');
+          }
+        }
+      } else {
+        throw new Error('fal.ai job did not complete within timeout.');
+      }
+
     } catch (err) {
       console.error('[fal.ai ERROR]:', err.message);
       errorOccurred = true;
       errorMessage = err.message;
     }
+  } else {
+    errorOccurred = true;
+    errorMessage = 'FAL_KEY not configured in server/.env';
   }
 
   // Save video to disk
   if (videoBuffer && videoBuffer.length > 10000) {
     fs.writeFileSync(filePath, videoBuffer);
   } else {
-    // Fallback: write template MP4
     const templateBuf = fs.readFileSync(VALID_MP4_TEMPLATE_PATH);
     fs.writeFileSync(filePath, templateBuf);
     videoBuffer = templateBuf;
@@ -254,13 +310,13 @@ export async function generateFalVideo({ generationId, userPrompt, imageInput, s
 
   console.log('===========================================================');
   console.log('===== FAL.AI VIDEO GENERATION COMPLETE =====');
-  console.log('generationId:      ', generationId);
-  console.log('falRequestId:      ', falRequestId || `local-${generationId}`);
-  console.log('isRealFalOutput:   ', isRealFalOutput);
-  console.log('errorOccurred:     ', errorOccurred);
-  console.log('errorMessage:      ', errorMessage);
-  console.log('videoBytes:        ', savedBuffer.length, 'bytes');
-  console.log('videoUrl:          ', relativeUrl);
+  console.log('generationId:    ', generationId);
+  console.log('falRequestId:    ', falRequestId || `local-${generationId}`);
+  console.log('isRealFalOutput: ', isRealFalOutput);
+  console.log('errorOccurred:   ', errorOccurred);
+  console.log('errorMessage:    ', errorMessage);
+  console.log('videoBytes:      ', savedBuffer.length, 'bytes');
+  console.log('videoUrl:        ', relativeUrl);
   console.log('===========================================================');
 
   return {
@@ -279,7 +335,4 @@ export async function generateFalVideo({ generationId, userPrompt, imageInput, s
   };
 }
 
-/**
- * Build prompt for advertisement
- */
 export { buildAdvertisementPrompt as buildPrompt };
