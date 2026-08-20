@@ -346,18 +346,18 @@ export const AdminCreateAdvertisementPage = () => {
                     <div className="flex-1 bg-amber-950/90 flex flex-col items-center justify-center p-4 text-center space-y-2">
                       <AlertTriangle className="w-7 h-7 text-amber-400" />
                       <div className="text-[11px] font-black text-amber-300 uppercase tracking-wider">
-                        Gemini API Quota Exceeded
+                        fal.ai Video Generation Error
                       </div>
                       <p className="text-[10px] text-amber-200 leading-relaxed">
-                        Free-tier 429 limit reached. No video was generated. Enable billing on your Gemini API key to generate a real product video.
+                        {generatedAd.errorMessage || 'Video generation failed. Check your fal.ai API key and account credits.'}
                       </p>
                       <a
-                        href="https://aistudio.google.com/app/apikey"
+                        href="https://fal.ai/dashboard"
                         target="_blank"
                         rel="noreferrer"
                         className="mt-1 px-3 py-1 bg-amber-500 hover:bg-amber-400 text-black font-black text-[10px] rounded-lg uppercase tracking-wide"
                       >
-                        Enable Billing →
+                        Check fal.ai Dashboard →
                       </a>
                     </div>
                     {/* Badge */}

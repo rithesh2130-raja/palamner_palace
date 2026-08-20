@@ -81,7 +81,7 @@ export const ReelsPage = () => {
   };
 
   return (
-    <div className="fixed inset-0 top-16 md:top-24 bg-black text-white overflow-hidden select-none z-30">
+    <div className="fixed inset-0 top-28 md:top-16 bg-black text-white overflow-hidden select-none z-30">
       {loading ? (
         <div className="h-full w-full flex flex-col items-center justify-center space-y-4 animate-pulse">
           <Film className="w-12 h-12 text-[#E50914] animate-bounce" />

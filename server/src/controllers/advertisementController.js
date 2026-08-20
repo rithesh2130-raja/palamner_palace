@@ -88,6 +88,7 @@ export const generateAdvertisement = async (req, res, next) => {
       geminiInteractionId: falResult.falRequestId || null,
       isRealGeminiOutput: falResult.isRealFalOutput || false,
       quotaErrorOccurred: falResult.quotaErrorOccurred || false,
+      errorMessage: falResult.errorMessage || null,
       inputImageHash,
       videoHash: falResult.videoHash,
       prompt: userPrompt,

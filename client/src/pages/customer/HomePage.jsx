@@ -171,10 +171,45 @@ export const HomePage = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+          <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent">
             {reels.map((reel) => (
-              <ReelCard key={reel.id || reel._id} reel={reel} />
+              <Link 
+                key={reel.id || reel._id} 
+                to="/reels"
+                className="group relative w-40 sm:w-48 aspect-[9/16] shrink-0 rounded-2xl overflow-hidden snap-start bg-neutral-900 border border-neutral-800"
+              >
+                <img 
+                  src={reel.thumbnailUrl || reel.uploadedImageUrl || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80'} 
+                  alt={reel.caption || 'Reel thumbnail'} 
+                  className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-300 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/90 pointer-events-none"></div>
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="p-3 bg-black/60 rounded-full backdrop-blur-sm">
+                    <Film className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <div className="absolute bottom-3 left-3 right-3">
+                  <p className="text-xs text-white font-medium line-clamp-2 drop-shadow-md">
+                    {reel.caption || 'Watch shoppable reel'}
+                  </p>
+                  <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-neutral-300">
+                    <span className="truncate">{reel.taggedProduct?.title || 'Featured Product'}</span>
+                  </div>
+                </div>
+              </Link>
             ))}
+            <div className="w-40 sm:w-48 aspect-[9/16] shrink-0 rounded-2xl flex items-center justify-center snap-start">
+               <Link
+                to="/reels"
+                className="flex flex-col items-center gap-3 text-neutral-400 hover:text-white transition-colors"
+               >
+                 <div className="p-4 rounded-full bg-neutral-900 border border-neutral-800">
+                   <ArrowRight className="w-6 h-6" />
+                 </div>
+                 <span className="text-xs font-bold">Watch All Reels</span>
+               </Link>
+            </div>
           </div>
         </section>
 

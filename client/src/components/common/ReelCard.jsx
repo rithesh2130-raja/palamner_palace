@@ -23,7 +23,7 @@ export const ReelCard = ({ reel, isActive }) => {
   const { toggleWishlist } = useWishlist();
   const { showToast } = useToast();
 
-  const product = reel.product || reel.taggedProduct || MOCK_PRODUCTS.find(p => p.id === reel.taggedProduct?.id) || MOCK_PRODUCTS[0];
+  const product = reel?.product || reel?.taggedProduct || MOCK_PRODUCTS.find(p => p.id === reel?.taggedProduct?.id) || MOCK_PRODUCTS[0];
   const isInCart = cartItems.some(item => item.product?.id === product?.id);
 
   // Play/Pause based on Active State from Parent Feed Observer
@@ -98,8 +98,8 @@ export const ReelCard = ({ reel, isActive }) => {
     }
   };
 
-  const rawPoster = reel.thumbnailUrl || reel.videoPoster || product?.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80';
-  const rawVideo = reel.videoUrl;
+  const rawPoster = reel?.thumbnailUrl || reel?.videoPoster || product?.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80';
+  const rawVideo = reel?.videoUrl;
 
   const posterSrc = getMediaUrl(rawPoster);
   const videoSrc = getMediaUrl(rawVideo);
@@ -141,19 +141,19 @@ export const ReelCard = ({ reel, isActive }) => {
       <div className="relative z-20 p-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <img
-            src={getMediaUrl(reel.creator?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80')}
-            alt={reel.creator?.name || 'PalamnerPalace'}
+            src={getMediaUrl(reel?.creator?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80')}
+            alt={reel?.creator?.name || 'PalamnerPalace'}
             className="w-9 h-9 rounded-full border-2 border-[#E50914] object-cover shadow"
           />
           <div>
             <div className="flex items-center gap-1">
               <span className="text-xs font-black text-white leading-none">
-                {reel.creator?.name || 'PalamnerPalace'}
+                {reel?.creator?.name || 'PalamnerPalace'}
               </span>
               <Sparkles className="w-3.5 h-3.5 text-[#E50914] fill-[#E50914]" />
             </div>
             <span className="text-[11px] text-neutral-300 font-medium">
-              {reel.creator?.handle || '@palamnerpalace'}
+              {reel?.creator?.handle || '@palamnerpalace'}
             </span>
           </div>
         </div>

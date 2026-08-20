@@ -64,4 +64,4 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient(env.VITE_API_URL);
+export const apiClient = new ApiClient(env.VITE_API_URL || 'http://localhost:5000/api/v1');
