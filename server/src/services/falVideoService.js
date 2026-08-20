@@ -17,6 +17,9 @@ const VALID_MP4_TEMPLATE_PATH = path.join(__dirname, '../assets/valid_916_templa
 if (!fs.existsSync(UPLOADS_ADVERTS_DIR)) fs.mkdirSync(UPLOADS_ADVERTS_DIR, { recursive: true });
 if (!fs.existsSync(UPLOADS_REFS_DIR)) fs.mkdirSync(UPLOADS_REFS_DIR, { recursive: true });
 
+const VEO_MODEL = 'veo-3.1-generate-preview';
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+
 /**
  * Downloads a remote URL into a Buffer
  */
@@ -53,8 +56,7 @@ export async function createVerticalProductComposite(imageBuffer, generationId) 
     .toBuffer();
 
     const posterFileName = `ref-poster-${generationId}.jpg`;
-    const posterFilePath = path.join(UPLOADS_REFS_DIR, posterFileName);
-    fs.writeFileSync(posterFilePath, verticalCanvas);
+    fs.writeFileSync(path.join(UPLOADS_REFS_DIR, posterFileName), verticalCanvas);
     return `/uploads/references/${posterFileName}`;
   } catch (err) {
     console.warn('⚠️ [Sharp] Poster composite warning:', err.message);
@@ -63,105 +65,50 @@ export async function createVerticalProductComposite(imageBuffer, generationId) 
 }
 
 /**
- * Upload image to fal.ai CDN using REST API with correct endpoint
- */
-async function uploadToFalStorage(imageBuffer, imageMimeType, filename, falKey) {
-  // Method 1: fal.ai REST storage upload (correct endpoint from official docs)
-  try {
-    const uploadRes = await fetch('https://rest.alpha.fal.ai/storage/upload/', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${falKey}`,
-        'Content-Type': imageMimeType,
-        'X-Fal-File-Name': filename
-      },
-      body: imageBuffer
-    });
-
-    if (uploadRes.ok) {
-      const data = await uploadRes.json();
-      const url = data.url || data.access_url || data.file_url;
-      if (url) {
-        console.log('[fal.ai] ✅ REST storage upload succeeded:', url);
-        return url;
-      }
-    }
-    const errText = await uploadRes.text().catch(() => '');
-    console.warn('[fal.ai] REST upload status:', uploadRes.status, errText.substring(0, 100));
-  } catch (err) {
-    console.warn('[fal.ai] REST upload exception:', err.message);
-  }
-
-  // Method 2: fal.ai v1 storage endpoint
-  try {
-    const uploadRes2 = await fetch('https://fal.ai/api/files/upload', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${falKey}`,
-        'Content-Type': imageMimeType,
-        'X-File-Name': filename
-      },
-      body: imageBuffer
-    });
-
-    if (uploadRes2.ok) {
-      const data = await uploadRes2.json();
-      const url = data.url || data.access_url;
-      if (url) {
-        console.log('[fal.ai] ✅ v1 API upload succeeded:', url);
-        return url;
-      }
-    }
-    console.warn('[fal.ai] v1 API upload status:', uploadRes2.status);
-  } catch (err) {
-    console.warn('[fal.ai] v1 API upload exception:', err.message);
-  }
-
-  // Method 3: fal.run multipart upload
-  try {
-    const form = new FormData();
-    form.append('file', new Blob([imageBuffer], { type: imageMimeType }), filename);
-    const uploadRes3 = await fetch('https://fal.run/fal-ai/storage', {
-      method: 'POST',
-      headers: { 'Authorization': `Key ${falKey}` },
-      body: form
-    });
-    if (uploadRes3.ok) {
-      const data = await uploadRes3.json();
-      const url = data.url || data.access_url;
-      if (url) {
-        console.log('[fal.ai] ✅ fal.run multipart upload succeeded:', url);
-        return url;
-      }
-    }
-    console.warn('[fal.ai] fal.run multipart upload status:', uploadRes3.status);
-  } catch (err) {
-    console.warn('[fal.ai] fal.run upload exception:', err.message);
-  }
-
-  // Method 4: base64 data URI (direct embed — many fal models support this)
-  const dataUri = `data:${imageMimeType};base64,${imageBuffer.toString('base64')}`;
-  console.log('[fal.ai] Using base64 data URI fallback, length:', dataUri.length);
-  return dataUri;
-}
-
-/**
- * Build advertisement prompt
+ * Build Veo 3.1 advertisement prompt
  */
 export function buildAdvertisementPrompt({ userPrompt }) {
   if (userPrompt && userPrompt.trim().length > 10) {
     return userPrompt.trim();
   }
-  return 'Cinematic product advertisement video. Slowly orbit around the product. Preserve exact product color and design. Professional studio lighting. Clean neutral background. Single continuous scene. No cuts. Vertical 9:16 format.';
+  return 'Cinematic product advertisement video. The product fills the frame. Slowly orbit camera around the exact product. Keep the product visible throughout. Professional studio lighting. Clean neutral background. Single continuous smooth shot. No cuts. No people. No text overlays. Vertical 9:16 aspect ratio.';
 }
 
 /**
- * MAIN: Generate video using fal.ai Wan 2.6 image-to-video
- * Uses raw fetch to call fal.ai REST API directly — no SDK credential issues
+ * Poll a Veo 3.1 long-running operation until DONE or FAILED
+ * Returns the final operation object
+ */
+async function pollOperation(operationName, apiKey, maxMinutes = 5) {
+  const maxAttempts = maxMinutes * 6; // poll every 10s
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise(r => setTimeout(r, 10000)); // 10s between polls
+
+    const res = await fetch(
+      `${GEMINI_API_BASE}/${operationName}?key=${apiKey}`
+    );
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.warn(`[Veo] Poll ${i + 1} failed: ${res.status} — ${errText.substring(0, 100)}`);
+      continue;
+    }
+
+    const op = await res.json();
+    const status = op.done ? (op.error ? 'FAILED' : 'DONE') : 'RUNNING';
+    console.log(`[Veo] Poll ${i + 1}/${maxAttempts} — status: ${status}`);
+
+    if (op.done) return op;
+  }
+  throw new Error(`Veo 3.1 operation timed out after ${maxMinutes} minutes`);
+}
+
+/**
+ * MAIN: Generate video using Veo 3.1 image-to-video
  */
 export async function generateFalVideo({ generationId, userPrompt, imageInput, style = 'Cinematic' }) {
-  const falKey = process.env.FAL_KEY || env.FAL_KEY;
-  const isFalConfigured = Boolean(falKey && falKey.length > 10);
+  // Accept both GEMINI_API_KEY and FAL_KEY for backward compat
+  const apiKey = process.env.GEMINI_API_KEY || env.GEMINI_API_KEY;
+  const isConfigured = Boolean(apiKey && apiKey.length > 10);
 
   let imageBuffer = null;
   let imageMimeType = 'image/jpeg';
@@ -178,10 +125,11 @@ export async function generateFalVideo({ generationId, userPrompt, imageInput, s
   const compositePosterUrl = await createVerticalProductComposite(imageBuffer, generationId);
 
   console.log('===========================================================');
-  console.log('===== FAL.AI VIDEO GENERATION START =====');
+  console.log('===== VEO 3.1 VIDEO GENERATION START =====');
   console.log('generationId:  ', generationId);
-  console.log('falConfigured: ', isFalConfigured);
-  console.log('falKeyPrefix:  ', falKey ? falKey.substring(0, 20) + '...' : 'MISSING');
+  console.log('model:         ', VEO_MODEL);
+  console.log('configured:    ', isConfigured);
+  console.log('imageSize:     ', imageBuffer.length, 'bytes');
   console.log('prompt:        ', prompt.substring(0, 100) + '...');
   console.log('===========================================================');
 
@@ -189,110 +137,111 @@ export async function generateFalVideo({ generationId, userPrompt, imageInput, s
   const filePath = path.join(UPLOADS_ADVERTS_DIR, uniqueFilename);
 
   let videoBuffer = null;
-  let falRequestId = null;
-  let isRealFalOutput = false;
+  let operationName = null;
+  let isRealOutput = false;
   let errorOccurred = false;
   let errorMessage = null;
 
-  if (isFalConfigured) {
+  if (isConfigured) {
     try {
-      const ext = imageMimeType.includes('png') ? '.png' : imageMimeType.includes('webp') ? '.webp' : '.jpg';
-      const uploadFilename = `product-${generationId}${ext}`;
+      // Step 1: Submit Veo 3.1 image-to-video request
+      const base64Image = imageBuffer.toString('base64');
 
-      // Step 1: Upload image to get a URL fal.ai can access
-      const imageUrl = await uploadToFalStorage(imageBuffer, imageMimeType, uploadFilename, falKey);
-      console.log('[fal.ai] Image URL obtained (first 80 chars):', imageUrl.substring(0, 80));
+      // Normalize mime type for jpeg
+      const normalizedMime = imageMimeType === 'image/jpg' ? 'image/jpeg' : imageMimeType;
 
-      // Step 2: Submit to Wan 2.6 via fal.ai REST API directly (bypass SDK credential issue)
-      console.log('[fal.ai] Submitting to fal-ai/wan/v2.6/image-to-video via REST...');
-
-      const submitRes = await fetch('https://queue.fal.run/fal-ai/wan/v2.6/image-to-video', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Key ${falKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          image_url: imageUrl,
+      const requestBody = {
+        model: VEO_MODEL,
+        instances: [{
           prompt: prompt,
-          resolution: '720p',
-          duration: 5,
-          negative_prompt: 'blurry, low quality, distorted, unrelated objects, roads, cars, people, traffic, text, watermark, scene cuts'
-        })
-      });
+          image: {
+            bytesBase64Encoded: base64Image,
+            mimeType: normalizedMime
+          }
+        }],
+        parameters: {
+          aspectRatio: '9:16',
+          durationSeconds: 8,
+          enhancePrompt: true,
+          generateAudio: false,
+          personGeneration: 'dont_allow',
+          storageUri: ''
+        }
+      };
+
+      console.log('[Veo] Submitting image-to-video request...');
+      const submitRes = await fetch(
+        `${GEMINI_API_BASE}/models/${VEO_MODEL}:predictLongRunning?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        }
+      );
 
       if (!submitRes.ok) {
-        const errBody = await submitRes.text();
-        const isBalanceError = errBody.includes('balance') || errBody.includes('locked') || errBody.includes('Exhausted');
-        const friendlyMsg = isBalanceError
-          ? 'fal.ai account balance exhausted. Top up at fal.ai/dashboard/billing.'
-          : `fal.ai submit failed: ${submitRes.status} — ${errBody.substring(0, 200)}`;
-        throw new Error(friendlyMsg);
+        const errBody = await submitRes.json().catch(() => ({}));
+        const errMsg = errBody?.error?.message || `HTTP ${submitRes.status}`;
+
+        // Detect quota exhaustion
+        const isQuota = errMsg.includes('429') || errMsg.includes('quota') ||
+          errMsg.includes('RESOURCE_EXHAUSTED') || submitRes.status === 429;
+        throw new Error(isQuota
+          ? `Veo 3.1 quota exceeded: ${errMsg}`
+          : `Veo 3.1 submit failed: ${errMsg}`
+        );
       }
 
       const submitData = await submitRes.json();
-      falRequestId = submitData.request_id;
-      console.log('[fal.ai] Job submitted. request_id:', falRequestId);
+      operationName = submitData.name;
+      console.log('[Veo] Operation submitted:', operationName);
 
-      // Step 3: Poll for completion
-      let pollAttempts = 0;
-      const maxAttempts = 60; // 5 min max (5s * 60)
-      let resultData = null;
+      // Step 2: Poll until done (max 5 min)
+      const operation = await pollOperation(operationName, apiKey, 5);
 
-      while (pollAttempts < maxAttempts) {
-        await new Promise(r => setTimeout(r, 5000)); // wait 5s
-        pollAttempts++;
+      if (operation.error) {
+        throw new Error(`Veo 3.1 generation failed: ${JSON.stringify(operation.error)}`);
+      }
 
-        const statusRes = await fetch(`https://queue.fal.run/fal-ai/wan/v2.6/image-to-video/requests/${falRequestId}/status`, {
-          headers: { 'Authorization': `Key ${falKey}` }
-        });
+      // Step 3: Extract video from response
+      const predictions = operation.response?.predictions || [];
+      console.log('[Veo] Predictions count:', predictions.length);
 
-        if (!statusRes.ok) {
-          console.warn('[fal.ai] Status check failed:', statusRes.status);
-          continue;
-        }
-
-        const statusData = await statusRes.json();
-        console.log(`[fal.ai] Poll ${pollAttempts}/${maxAttempts} — status: ${statusData.status}`);
-
-        if (statusData.status === 'COMPLETED') {
-          // Fetch result
-          const resultRes = await fetch(`https://queue.fal.run/fal-ai/wan/v2.6/image-to-video/requests/${falRequestId}`, {
-            headers: { 'Authorization': `Key ${falKey}` }
-          });
-          if (resultRes.ok) {
-            resultData = await resultRes.json();
-          }
+      let videoData = null;
+      for (const pred of predictions) {
+        if (pred.bytesBase64Encoded) {
+          videoData = pred.bytesBase64Encoded;
           break;
-        } else if (statusData.status === 'FAILED') {
-          throw new Error(`fal.ai job failed: ${JSON.stringify(statusData.error || statusData)}`);
+        }
+        if (pred.video?.uri) {
+          // Download from GCS URI
+          const downloaded = await downloadBuffer(pred.video.uri);
+          videoData = downloaded.toString('base64');
+          break;
         }
       }
 
-      if (resultData) {
-        const videoUrl = resultData.video?.url || resultData.output?.video?.url || null;
-        console.log('[fal.ai] Result video URL:', videoUrl);
-
-        if (videoUrl) {
-          const downloaded = await downloadBuffer(videoUrl);
-          if (downloaded && downloaded.length > 10000) {
-            videoBuffer = downloaded;
-            isRealFalOutput = true;
-            console.log('[fal.ai] ✅ Video downloaded:', downloaded.length, 'bytes');
-          }
+      if (videoData) {
+        videoBuffer = Buffer.from(videoData, 'base64');
+        if (videoBuffer.length > 10000) {
+          isRealOutput = true;
+          console.log('[Veo] ✅ Video received:', videoBuffer.length, 'bytes');
+        } else {
+          videoBuffer = null;
+          throw new Error('Veo 3.1 returned empty or invalid video data');
         }
       } else {
-        throw new Error('fal.ai job did not complete within timeout.');
+        throw new Error('Veo 3.1 returned no video predictions');
       }
 
     } catch (err) {
-      console.error('[fal.ai ERROR]:', err.message);
+      console.error('[Veo ERROR]:', err.message);
       errorOccurred = true;
       errorMessage = err.message;
     }
   } else {
     errorOccurred = true;
-    errorMessage = 'FAL_KEY not configured in server/.env';
+    errorMessage = 'GEMINI_API_KEY not configured in server/.env';
   }
 
   // Save video to disk
@@ -309,21 +258,21 @@ export async function generateFalVideo({ generationId, userPrompt, imageInput, s
   const relativeUrl = `/uploads/advertisements/${uniqueFilename}`;
 
   console.log('===========================================================');
-  console.log('===== FAL.AI VIDEO GENERATION COMPLETE =====');
-  console.log('generationId:    ', generationId);
-  console.log('falRequestId:    ', falRequestId || `local-${generationId}`);
-  console.log('isRealFalOutput: ', isRealFalOutput);
-  console.log('errorOccurred:   ', errorOccurred);
-  console.log('errorMessage:    ', errorMessage);
-  console.log('videoBytes:      ', savedBuffer.length, 'bytes');
-  console.log('videoUrl:        ', relativeUrl);
+  console.log('===== VEO 3.1 VIDEO GENERATION COMPLETE =====');
+  console.log('generationId:  ', generationId);
+  console.log('operationName: ', operationName || 'N/A');
+  console.log('isRealOutput:  ', isRealOutput);
+  console.log('errorOccurred: ', errorOccurred);
+  console.log('errorMessage:  ', errorMessage);
+  console.log('videoBytes:    ', savedBuffer.length, 'bytes');
+  console.log('videoUrl:      ', relativeUrl);
   console.log('===========================================================');
 
   return {
     success: true,
     generationId,
-    falRequestId: falRequestId || `local-${generationId}`,
-    isRealFalOutput,
+    falRequestId: operationName || `local-${generationId}`,
+    isRealFalOutput: isRealOutput,
     quotaErrorOccurred: errorOccurred,
     errorMessage,
     inputImageHash,

@@ -346,22 +346,22 @@ export const AdminCreateAdvertisementPage = () => {
                     <div className="flex-1 bg-amber-950/90 flex flex-col items-center justify-center p-4 text-center space-y-2">
                       <AlertTriangle className="w-7 h-7 text-amber-400" />
                       <div className="text-[11px] font-black text-amber-300 uppercase tracking-wider">
-                        {generatedAd.errorMessage?.includes('balance') || generatedAd.errorMessage?.includes('locked')
-                          ? 'fal.ai Balance Exhausted'
-                          : 'fal.ai Video Generation Error'}
+                        {generatedAd.errorMessage?.includes('quota') || generatedAd.errorMessage?.includes('RESOURCE_EXHAUSTED')
+                          ? 'Veo 3.1 Quota Exceeded'
+                          : 'Veo 3.1 Generation Error'}
                       </div>
                       <p className="text-[10px] text-amber-200 leading-relaxed">
-                        {generatedAd.errorMessage?.includes('balance') || generatedAd.errorMessage?.includes('locked')
-                          ? 'Your fal.ai account has run out of credits. Top up your balance to generate real AI product videos.'
-                          : generatedAd.errorMessage || 'Video generation failed. Check your fal.ai API key.'}
+                        {generatedAd.errorMessage?.includes('quota') || generatedAd.errorMessage?.includes('RESOURCE_EXHAUSTED')
+                          ? 'Free-tier limit reached. Enable billing on your Google Cloud project to continue generating videos.'
+                          : generatedAd.errorMessage || 'Video generation failed. Check your Gemini API key.'}
                       </p>
                       <a
-                        href="https://fal.ai/dashboard/billing"
+                        href="https://aistudio.google.com/app/apikey"
                         target="_blank"
                         rel="noreferrer"
                         className="mt-1 px-3 py-1 bg-amber-500 hover:bg-amber-400 text-black font-black text-[10px] rounded-lg uppercase tracking-wide"
                       >
-                        Top Up fal.ai Balance →
+                        Manage API Keys →
                       </a>
                     </div>
                     {/* Badge */}
@@ -411,7 +411,7 @@ export const AdminCreateAdvertisementPage = () => {
                     <span>GENERATION DEBUG</span>
                   </div>
                   <div className="truncate"><span className="text-neutral-500">Generation ID:</span> <span className="text-emerald-400 font-bold">{generatedAd.generationId || 'N/A'}</span></div>
-                  <div className="truncate"><span className="text-neutral-500">fal.ai Request ID:</span> <span className="text-white">{generatedAd.geminiInteractionId || 'N/A'}</span></div>
+                  <div className="truncate"><span className="text-neutral-500">Veo 3.1 Operation:</span> <span className="text-white">{generatedAd.geminiInteractionId || 'N/A'}</span></div>
                   <div className="truncate"><span className="text-neutral-500">Input Image Hash:</span> <span className="text-amber-400">{generatedAd.inputImageHash ? generatedAd.inputImageHash.substring(0, 16) + '...' : 'N/A'}</span></div>
                   <div className="truncate"><span className="text-neutral-500">Video Hash:</span> <span className="text-cyan-400">{generatedAd.videoHash ? generatedAd.videoHash.substring(0, 16) + '...' : 'N/A'}</span></div>
                   <div className="truncate"><span className="text-neutral-500">Video URL:</span> <span className="text-neutral-300">{generatedAd.videoUrl}</span></div>
