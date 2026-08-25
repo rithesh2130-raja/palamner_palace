@@ -62,20 +62,21 @@ class AIVideoService {
       throw new AIVideoError(ERROR_CODES.GENERATION_FAILED, 'Please provide a descriptive prompt of at least 5 characters');
     }
 
-    // STRICT FREE TIER USAGE LIMITER (Prevents unexpected API charges)
+    // FREE TIER USAGE LIMITER (Only count actual COMPLETED successful video generations)
     const dailyLimit = Number(process.env.XAI_FREE_DAILY_LIMIT) || 5;
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    const recentJobsCount = await AIGenerationJob.countDocuments({
+    const successfulCompletedJobs = await AIGenerationJob.countDocuments({
       creatorId,
       createdAt: { $gte: twentyFourHoursAgo },
-      status: { $in: ['QUEUED', 'GENERATING', 'PROCESSING', 'COMPLETED'] },
+      status: 'COMPLETED',
+      xaiRequestId: { $exists: true, $ne: null },
     }).catch(() => 0);
 
-    if (recentJobsCount >= dailyLimit) {
+    if (successfulCompletedJobs >= dailyLimit) {
       throw new AIVideoError(
         'FREE_TIER_LIMIT_EXCEEDED',
-        `Free Tier Daily Limit Reached (${recentJobsCount}/${dailyLimit} generations in 24h). Further requests are strictly blocked to prevent unexpected API usage charges.`,
+        `Free Tier Daily Limit Reached (${successfulCompletedJobs}/${dailyLimit} completed generations in 24h). Further requests are strictly blocked to prevent unexpected API usage charges.`,
         429
       );
     }
