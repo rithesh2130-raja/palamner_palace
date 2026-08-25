@@ -17,6 +17,9 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
     setIsPublishModalOpen,
     lastError,
     setLastError,
+    duration,
+    aspectRatio,
+    resolution,
   } = useAIStudioStore();
 
   const videoRef = useRef(null);
@@ -75,8 +78,8 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       const current = videoRef.current.currentTime;
-      const duration = videoRef.current.duration || 1;
-      setProgress((current / duration) * 100);
+      const durationVal = videoRef.current.duration || 1;
+      setProgress((current / durationVal) * 100);
     }
   };
 
@@ -124,23 +127,37 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
             )}
           </div>
         ) : lastError ? (
-          /* Error Screen */
-          <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gray-900 text-red-400 space-y-4">
-            <div className="w-16 h-16 rounded-full bg-red-950/60 border border-red-800 flex items-center justify-center text-red-400">
-              <AlertTriangle className="w-8 h-8" />
+          /* Detailed Real Error Screen (Requirement Step 14) */
+          <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gray-900 text-red-400 space-y-4 overflow-y-auto">
+            <div className="w-14 h-14 rounded-full bg-red-950/60 border border-red-800 flex items-center justify-center text-red-400 shrink-0">
+              <AlertTriangle className="w-7 h-7" />
             </div>
+            
             <div className="space-y-2 max-w-xs">
-              <Badge variant="danger" size="sm">GENERATION ERROR</Badge>
-              <h3 className="text-sm font-bold text-white leading-tight">
-                {lastError}
-              </h3>
+              <Badge variant="danger" size="sm">xAI GENERATION ERROR</Badge>
+              <h4 className="text-xs font-mono font-bold text-red-300 uppercase tracking-wider">
+                Provider Diagnostic Response
+              </h4>
+              <div className="p-3 rounded-xl bg-gray-950 border border-red-900/60 text-left space-y-1">
+                <p className="text-xs font-mono font-medium text-red-200 break-words leading-relaxed">
+                  {lastError}
+                </p>
+              </div>
             </div>
+
+            <div className="p-2.5 rounded-lg bg-gray-950/80 border border-gray-800 text-[10px] font-mono text-gray-400 text-left w-full max-w-xs space-y-0.5">
+              <div className="text-gray-300 font-bold">Request Diagnostic Context:</div>
+              <div>• Model: grok-imagine-video-1.5</div>
+              <div>• Specs: {duration}s | {aspectRatio} | {resolution}</div>
+              <div>• Endpoint: https://api.x.ai/v1/videos/generations</div>
+            </div>
+
             <Button
               variant="primary"
               size="sm"
               icon={RotateCcw}
               onClick={onRetry || (() => setLastError(null))}
-              className="mt-2 text-xs font-bold bg-red-600 hover:bg-red-700 text-white border-none"
+              className="text-xs font-bold bg-red-600 hover:bg-red-700 text-white border-none shadow-md shrink-0"
             >
               TRY AGAIN
             </Button>
@@ -232,7 +249,7 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
         )}
       </div>
 
-      {/* Proof Metadata Display Box (Requirement 22 & 33) */}
+      {/* Proof Metadata Display Box (Requirement Step 14) */}
       {currentVideoUrl && (
         <div className="mt-3 w-full max-w-[350px] p-2.5 rounded-xl bg-gray-900 border border-gray-800 text-[11px] font-mono text-gray-300 space-y-1">
           <div className="flex items-center justify-between text-accent font-bold">

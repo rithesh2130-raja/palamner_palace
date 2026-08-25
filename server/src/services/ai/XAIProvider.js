@@ -26,21 +26,36 @@ export class XAIProvider extends VideoGenerationProvider {
 
   async generateVideo(params) {
     const headers = this.getHeaders();
+    const duration = Number(params.duration) || 5;
+    const aspectRatio = params.aspectRatio || '9:16';
+    const resolution = params.resolution || '720p';
+    const isImageMode = Boolean(params.inputImageUrl && typeof params.inputImageUrl === 'string' && params.inputImageUrl.startsWith('http'));
 
+    // Step 1: Log outgoing xAI request safely (Requirement Step 1 & 7)
+    console.log(`\n[xAI DEBUG] model: ${this.model}`);
+    console.log(`[xAI DEBUG] prompt: ${params.prompt}`);
+    console.log(`[xAI DEBUG] duration: ${duration}`);
+    console.log(`[xAI DEBUG] aspect_ratio: ${aspectRatio}`);
+    console.log(`[xAI DEBUG] resolution: ${resolution}`);
+    console.log(`[xAI DEBUG] image mode: ${isImageMode ? 'IMAGE-TO-VIDEO' : 'TEXT-TO-VIDEO'}`);
+    console.log(`[xAI DEBUG] image URL present: ${isImageMode ? 'YES' : 'NO'}`);
+
+    // Construct Payload cleanly (Requirement Step 3 & 9)
     const payload = {
       model: this.model,
       prompt: params.prompt,
-      duration: Number(params.duration) || 5,
-      aspect_ratio: params.aspectRatio || '9:16',
-      resolution: params.resolution || '720p',
+      duration,
+      aspect_ratio: aspectRatio,
+      resolution,
     };
 
-    if (params.inputImageUrl) {
-      payload.image = { url: params.inputImageUrl };
-      payload.image_url = params.inputImageUrl; // Included for API compatibility
+    if (isImageMode) {
+      console.log(`[xAI DEBUG] product image URL: ${params.inputImageUrl}`);
+      console.log(`[xAI DEBUG] image URL reachable: ${params.inputImageUrl.startsWith('https://') ? 'YES (Public HTTPS)' : 'NO'}`);
+      payload.image = {
+        url: params.inputImageUrl
+      };
     }
-
-    console.log(`[xAI] Starting video generation | Model: ${this.model} | Mode: ${params.inputImageUrl ? 'image-to-video' : 'text-to-video'}`);
 
     try {
       const response = await fetch(`${this.baseUrl}/videos/generations`, {
@@ -49,24 +64,41 @@ export class XAIProvider extends VideoGenerationProvider {
         body: JSON.stringify(payload),
       });
 
+      // Step 2: Log actual xAI error body if not ok (Requirement Step 2)
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const status = response.status;
-        const errMessage = errorData.error?.message || errorData.message || `xAI API HTTP ${status}`;
+        const responseText = await response.text();
+        console.error('[xAI ERROR]', {
+          status: response.status,
+          body: responseText,
+        });
 
-        console.error(`[xAI ERROR] POST /videos/generations returned HTTP ${status}: ${errMessage}`);
-
-        if (status === 401) {
-          throw new AIVideoError('XAI_AUTH_FAILED', 'AI provider authentication failed. Check the server xAI API key.', 401);
+        let parsedError = responseText;
+        try {
+          const jsonErr = JSON.parse(responseText);
+          parsedError = jsonErr.error?.message || jsonErr.error || jsonErr.message || jsonErr.code || responseText;
+        } catch {
+          // keep responseText
         }
-        if (status === 402 || status === 429) {
-          throw new AIVideoError('XAI_BILLING_ERROR', 'AI video generation is currently unavailable. Check your xAI API account and usage limits.', 429);
+
+        if (response.status === 401) {
+          throw new AIVideoError(
+            'XAI_AUTH_FAILED',
+            `AI provider authentication failed (HTTP 401): ${parsedError}`,
+            401
+          );
+        }
+        if (response.status === 402 || response.status === 429) {
+          throw new AIVideoError(
+            'XAI_BILLING_ERROR',
+            `AI video generation unavailable (HTTP ${response.status}): ${parsedError}`,
+            429
+          );
         }
 
         throw new AIVideoError(
-          ERROR_CODES.GENERATION_FAILED,
-          `xAI Generation Error: ${errMessage}`,
-          status
+          'XAI_API_ERROR',
+          `xAI API HTTP ${response.status} Error: ${parsedError}`,
+          response.status
         );
       }
 
@@ -74,10 +106,10 @@ export class XAIProvider extends VideoGenerationProvider {
       const requestId = data.request_id || data.id;
 
       if (!requestId) {
-        throw new AIVideoError(ERROR_CODES.GENERATION_FAILED, 'xAI API did not return a valid request_id');
+        throw new AIVideoError('XAI_API_ERROR', 'xAI API response missing request_id');
       }
 
-      console.log(`[xAI] Generation started | Request ID: ${requestId}`);
+      console.log(`[xAI SUCCESS] Generation started | xAI Request ID: ${requestId}`);
 
       return {
         requestId,
@@ -88,7 +120,7 @@ export class XAIProvider extends VideoGenerationProvider {
     } catch (err) {
       if (err instanceof AIVideoError) throw err;
       throw new AIVideoError(
-        ERROR_CODES.PROVIDER_UNAVAILABLE,
+        'XAI_API_ERROR',
         `Network error connecting to xAI API: ${err.message}`,
         500
       );
@@ -109,16 +141,18 @@ export class XAIProvider extends VideoGenerationProvider {
       });
 
       if (!response.ok) {
+        const responseText = await response.text();
+        console.error('[xAI ERROR] GET Status Failed', { status: response.status, body: responseText });
         if (response.status === 404) {
-          throw new AIVideoError(ERROR_CODES.JOB_NOT_FOUND, `Generation request ${requestId} not found on xAI`, 404);
+          throw new AIVideoError(ERROR_CODES.JOB_NOT_FOUND, `Request ${requestId} not found on xAI`, 404);
         }
-        throw new AIVideoError(ERROR_CODES.PROVIDER_UNAVAILABLE, `Failed to query status from xAI (HTTP ${response.status})`);
+        throw new AIVideoError(ERROR_CODES.PROVIDER_UNAVAILABLE, `Failed to query xAI status: ${responseText}`);
       }
 
       const data = await response.json();
       const rawStatus = (data.status || data.state || '').toLowerCase();
 
-      console.log(`[xAI] Polling status | Request ID: ${requestId} | Provider Status: ${rawStatus}`);
+      console.log(`[xAI DEBUG] Polling status | Request ID: ${requestId} | Status: ${rawStatus}`);
 
       let mappedStatus = 'GENERATING';
       let videoUrl = null;
@@ -126,13 +160,13 @@ export class XAIProvider extends VideoGenerationProvider {
       if (rawStatus === 'done' || rawStatus === 'completed' || rawStatus === 'succeeded' || data.video?.url || data.video_url) {
         mappedStatus = 'COMPLETED';
         videoUrl = data.video?.url || data.video_url || data.url || null;
-        console.log(`[xAI] Video generated successfully | Request ID: ${requestId} | Video URL: ${videoUrl}`);
+        console.log(`[xAI SUCCESS] Video completed | Request ID: ${requestId} | Video URL: ${videoUrl}`);
       } else if (rawStatus === 'failed' || rawStatus === 'error') {
         mappedStatus = 'FAILED';
-        console.error(`[xAI] Generation failed on provider side | Request ID: ${requestId} | Error: ${data.error?.message || 'Unknown provider error'}`);
+        console.error(`[xAI ERROR] Generation failed on provider side | Request ID: ${requestId} | Error: ${JSON.stringify(data.error || data)}`);
       } else if (rawStatus === 'expired') {
         mappedStatus = 'EXPIRED';
-        console.warn(`[xAI] Generation expired on provider side | Request ID: ${requestId}`);
+        console.warn(`[xAI WARNING] Generation expired | Request ID: ${requestId}`);
       } else if (rawStatus === 'cancelled') {
         mappedStatus = 'CANCELLED';
       }
@@ -145,7 +179,7 @@ export class XAIProvider extends VideoGenerationProvider {
         videoUrl,
         thumbnailUrl: data.thumbnail_url || data.thumbnail?.url || null,
         errorCode: data.error?.code || null,
-        errorMessage: data.error?.message || null,
+        errorMessage: data.error?.message || (data.error ? JSON.stringify(data.error) : null),
       };
     } catch (err) {
       if (err instanceof AIVideoError) throw err;
