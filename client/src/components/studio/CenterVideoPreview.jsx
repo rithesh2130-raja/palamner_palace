@@ -1,18 +1,22 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, RotateCcw, Check, Wand2, Download, RefreshCw } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, RotateCcw, Check, Wand2, Download, AlertTriangle, ShieldCheck, ExternalLink } from 'lucide-react';
 import Button from '../ui/Button.jsx';
 import Badge from '../ui/Badge.jsx';
 import useAIStudioStore from '../../store/useAIStudioStore.js';
 import useVideoGenerationJob from '../../hooks/useVideoGenerationJob.js';
 
-export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo }) => {
+export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, onRetry }) => {
   const {
     currentJobId,
     currentVideoUrl,
     setCurrentVideoUrl,
+    xaiRequestId,
+    setXaiRequestId,
     selectedProduct,
     selectedCTA,
     setIsPublishModalOpen,
+    lastError,
+    setLastError,
   } = useAIStudioStore();
 
   const videoRef = useRef(null);
@@ -20,21 +24,35 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo }
   const [isMuted, setIsMuted] = useState(true);
   const [progress, setProgress] = useState(0);
 
-  // Poll video generation job using TanStack Query
-  const { data: jobData } = useVideoGenerationJob(currentJobId);
+  // Poll video generation job using TanStack Query (5s interval)
+  const { data: jobData, isError, error: queryError } = useVideoGenerationJob(currentJobId);
 
   useEffect(() => {
     if (jobData) {
-      if (jobData.status === 'COMPLETED' && jobData.outputVideoUrl) {
-        setCurrentVideoUrl(jobData.outputVideoUrl);
+      if (jobData.xaiRequestId) {
+        setXaiRequestId(jobData.xaiRequestId);
+      }
+
+      if (jobData.status === 'COMPLETED' && (jobData.videoUrl || jobData.outputVideoUrl)) {
+        const finalUrl = jobData.videoUrl || jobData.outputVideoUrl;
+        setCurrentVideoUrl(finalUrl);
         setIsGenerating(false);
+        setLastError(null);
       } else if (['FAILED', 'EXPIRED', 'CANCELLED'].includes(jobData.status)) {
         setIsGenerating(false);
+        setLastError(jobData.error || jobData.errorMessage || `xAI generation ${jobData.status.toLowerCase()}`);
       }
     }
-  }, [jobData, setCurrentVideoUrl, setIsGenerating]);
+  }, [jobData, setCurrentVideoUrl, setIsGenerating, setXaiRequestId, setLastError]);
 
-  // Handle video element play / pause synchronization
+  useEffect(() => {
+    if (isError && queryError) {
+      setIsGenerating(false);
+      setLastError(queryError.message || 'Failed to poll generation job status');
+    }
+  }, [isError, queryError, setIsGenerating, setLastError]);
+
+  // Sync video play/pause
   useEffect(() => {
     if (videoRef.current && currentVideoUrl) {
       videoRef.current.currentTime = 0;
@@ -63,16 +81,16 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo }
   };
 
   const currentStatusMsg = () => {
-    if (!jobData) return 'Preparing generation...';
-    if (jobData.status === 'QUEUED') return 'Queued in xAI pipeline...';
-    if (jobData.status === 'GENERATING') return `Generating video frames (${jobData.progress || 45}%)...`;
-    if (jobData.status === 'PROCESSING') return 'Finalizing video output & thumbnails...';
+    if (!jobData) return 'Submitting request to xAI API...';
+    if (jobData.status === 'QUEUED') return 'Queued in xAI processing pipeline...';
+    if (jobData.status === 'GENERATING') return 'Generating video with Grok Imagine...';
+    if (jobData.status === 'PROCESSING') return 'Finalizing video output & MP4 stream...';
     if (jobData.status === 'COMPLETED') return 'Video Ready!';
-    if (jobData.status === 'FAILED') return jobData.errorMessage || 'Generation failed';
+    if (jobData.status === 'FAILED') return jobData.error || 'Generation failed on provider side';
     return 'Processing AI Reel...';
   };
 
-  const activeVideo = currentVideoUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
+  const activeXaiRequestId = xaiRequestId || jobData?.xaiRequestId || jobData?.requestId || null;
 
   return (
     <div className="flex flex-col items-center justify-center p-4 bg-gray-950 border border-gray-800 rounded-2xl shadow-xl min-h-[550px] relative overflow-hidden select-none">
@@ -94,24 +112,45 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo }
                 {currentStatusMsg()}
               </h3>
               <p className="text-xs text-gray-400">
-                Generating 9:16 vertical commercial frames. This usually takes 5-15 seconds.
+                Official xAI API generation in progress. Rendering 9:16 vertical commercial frames...
               </p>
             </div>
 
-            {/* Animated Progress Bar */}
-            <div className="w-full max-w-xs bg-gray-800 h-2 rounded-full overflow-hidden">
-              <div
-                className="bg-accent h-full transition-all duration-300"
-                style={{ width: `${jobData?.progress || 35}%` }}
-              />
-            </div>
+            {/* Proof Metadata Pill during generation */}
+            {activeXaiRequestId && (
+              <div className="p-2 rounded-lg bg-gray-950 border border-gray-800 text-[10px] font-mono text-gray-400 max-w-xs truncate">
+                xAI Request ID: <span className="text-accent">{activeXaiRequestId}</span>
+              </div>
+            )}
           </div>
-        ) : (
+        ) : lastError ? (
+          /* Error Screen */
+          <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gray-900 text-red-400 space-y-4">
+            <div className="w-16 h-16 rounded-full bg-red-950/60 border border-red-800 flex items-center justify-center text-red-400">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            <div className="space-y-2 max-w-xs">
+              <Badge variant="danger" size="sm">GENERATION ERROR</Badge>
+              <h3 className="text-sm font-bold text-white leading-tight">
+                {lastError}
+              </h3>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={RotateCcw}
+              onClick={onRetry || (() => setLastError(null))}
+              className="mt-2 text-xs font-bold bg-red-600 hover:bg-red-700 text-white border-none"
+            >
+              TRY AGAIN
+            </Button>
+          </div>
+        ) : currentVideoUrl ? (
           /* Active Video Player Container */
           <div className="relative w-full h-full bg-black group" onClick={handleTogglePlay}>
             <video
               ref={videoRef}
-              src={activeVideo}
+              src={currentVideoUrl}
               autoPlay
               loop
               muted={isMuted}
@@ -123,7 +162,7 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo }
               className="w-full h-full object-cover"
             />
 
-            {/* Always-Visible Controls Overlay Header & Footer */}
+            {/* Controls Overlay Header & Footer */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 p-4 flex flex-col justify-between pointer-events-none">
               {/* Top Reel Badge & Mute Toggle */}
               <div className="flex items-center justify-between text-white pointer-events-auto z-10">
@@ -177,45 +216,77 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo }
               <div className="h-full bg-accent transition-all duration-150" style={{ width: `${progress}%` }} />
             </div>
           </div>
+        ) : (
+          /* Ready Empty State */
+          <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gray-900 text-gray-400 space-y-4">
+            <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center text-accent">
+              <Wand2 className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-white">Ready for AI Reel Generation</h3>
+              <p className="text-xs text-gray-400 max-w-xs">
+                Enter a prompt and click "GENERATE REEL" to invoke xAI Grok Imagine Video 1.5.
+              </p>
+            </div>
+          </div>
         )}
       </div>
 
+      {/* Proof Metadata Display Box (Requirement 22 & 33) */}
+      {currentVideoUrl && (
+        <div className="mt-3 w-full max-w-[350px] p-2.5 rounded-xl bg-gray-900 border border-gray-800 text-[11px] font-mono text-gray-300 space-y-1">
+          <div className="flex items-center justify-between text-accent font-bold">
+            <span className="flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> xAI Official Output
+            </span>
+            <span>grok-imagine-video-1.5</span>
+          </div>
+          {activeXaiRequestId && (
+            <div className="truncate text-gray-400">
+              xAI Request ID: <span className="text-white font-bold">{activeXaiRequestId}</span>
+            </div>
+          )}
+          <div className="truncate text-gray-400">
+            Video URL: <a href={currentVideoUrl} target="_blank" rel="noreferrer" className="text-accent underline inline-flex items-center gap-0.5">{currentVideoUrl.substring(0, 32)}... <ExternalLink className="w-3 h-3" /></a>
+          </div>
+        </div>
+      )}
+
       {/* Action Toolbar Below Video Preview */}
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-        <Button
-          variant="primary"
-          size="md"
-          icon={Check}
-          onClick={onUseVideo || (() => setIsPublishModalOpen(true))}
-          className="font-bold text-xs shadow-md"
-        >
-          USE THIS VIDEO
-        </Button>
-
-        <Button
-          variant="outline"
-          size="md"
-          icon={RefreshCw}
-          onClick={() => {
-            setCurrentVideoUrl(null);
-            setIsGenerating(false);
-          }}
-          className="text-gray-300 border-gray-700 hover:bg-white/10 text-xs font-semibold"
-        >
-          Reset Preview
-        </Button>
-
-        <a href={activeVideo} download="shopsphere-ai-reel.mp4" target="_blank" rel="noreferrer">
+      {currentVideoUrl && (
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
           <Button
-            variant="ghost"
+            variant="primary"
             size="md"
-            icon={Download}
-            className="text-gray-300 hover:bg-white/10 text-xs"
+            icon={Check}
+            onClick={onUseVideo || (() => setIsPublishModalOpen(true))}
+            className="font-bold text-xs shadow-md"
           >
-            Download
+            USE THIS VIDEO
           </Button>
-        </a>
-      </div>
+
+          <Button
+            variant="outline"
+            size="md"
+            icon={RotateCcw}
+            onClick={onRetry}
+            className="text-gray-300 border-gray-700 hover:bg-white/10 text-xs font-semibold"
+          >
+            Regenerate
+          </Button>
+
+          <a href={currentVideoUrl} download="shopsphere-grok-reel.mp4" target="_blank" rel="noreferrer">
+            <Button
+              variant="ghost"
+              size="md"
+              icon={Download}
+              className="text-gray-300 hover:bg-white/10 text-xs"
+            >
+              Download
+            </Button>
+          </a>
+        </div>
+      )}
     </div>
   );
 };

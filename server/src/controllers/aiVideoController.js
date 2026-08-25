@@ -6,26 +6,15 @@ export const generateVideo = async (req, res) => {
   try {
     const { prompt, productId, duration, aspectRatio, resolution, inputImageUrl } = req.body;
 
-    // Default creator and user context (from Auth or fallback for testing)
     const userId = req.user?.id || 'usr_creator_demo';
     const creatorId = req.user?.creatorId || req.user?.id || 'usr_creator_demo';
 
-    let productContext = null;
     let imageToUse = inputImageUrl;
 
     if (productId) {
       const product = await Product.findById(productId).catch(() => null);
-      if (product) {
-        productContext = {
-          title: product.title,
-          brand: product.brand,
-          category: product.category,
-          price: product.price,
-          description: product.description,
-        };
-        if (!imageToUse && product.image) {
-          imageToUse = product.image;
-        }
+      if (product && product.image && !imageToUse) {
+        imageToUse = product.image;
       }
     }
 
@@ -35,21 +24,19 @@ export const generateVideo = async (req, res) => {
       productId: productId || null,
       rawPrompt: prompt,
       inputImageUrl: imageToUse,
-      duration: duration || 6,
+      duration: duration || 5,
       aspectRatio: aspectRatio || '9:16',
       resolution: resolution || '720p',
-      productContext,
     });
 
     return res.status(202).json({
       success: true,
-      message: 'Video generation submitted successfully',
+      message: 'xAI Video generation submitted successfully',
       data: {
         jobId: job._id,
-        requestId: job.requestId,
+        xaiRequestId: job.xaiRequestId || job.requestId,
+        requestId: job.xaiRequestId || job.requestId,
         status: job.status,
-        progress: job.progress,
-        estimatedCost: job.estimatedCost,
         provider: job.provider,
         model: job.model,
       },
@@ -60,6 +47,7 @@ export const generateVideo = async (req, res) => {
       success: false,
       code: err.code || 'GENERATION_ERROR',
       error: userMessage,
+      message: userMessage,
     });
   }
 };
@@ -69,14 +57,20 @@ export const getJobStatus = async (req, res) => {
     const { jobId } = req.params;
     const job = await aiVideoService.pollAndSyncJob(jobId);
 
+    const videoUrl = job.videoUrl || job.outputVideoUrl || null;
+    const xaiRequestId = job.xaiRequestId || job.requestId || null;
+
     return res.status(200).json({
       success: true,
       data: {
+        _id: job._id,
         jobId: job._id,
-        requestId: job.requestId,
+        xaiRequestId,
+        requestId: xaiRequestId,
         status: job.status,
         progress: job.progress,
-        outputVideoUrl: job.outputVideoUrl,
+        videoUrl,
+        outputVideoUrl: videoUrl,
         thumbnailUrl: job.thumbnailUrl,
         prompt: job.prompt,
         enhancedPrompt: job.enhancedPrompt,
@@ -87,6 +81,7 @@ export const getJobStatus = async (req, res) => {
         provider: job.provider,
         model: job.model,
         errorCode: job.errorCode,
+        error: job.error || job.errorMessage ? getHumanReadableErrorMessage(job.errorCode, job.errorMessage || job.error) : null,
         errorMessage: job.errorMessage ? getHumanReadableErrorMessage(job.errorCode, job.errorMessage) : null,
         createdAt: job.createdAt,
         completedAt: job.completedAt,

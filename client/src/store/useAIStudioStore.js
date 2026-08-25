@@ -11,7 +11,7 @@ export const useAIStudioStore = create((set) => ({
   setSelectedProduct: (product) => set({ selectedProduct: product }),
 
   // Generation Controls
-  prompt: 'Create a cinematic 9:16 vertical commercial advertisement showing this product rotating slowly on a premium desk. Ultra high definition detail, studio rim lighting, shallow depth of field, realistic macro textures, smooth camera push-in.',
+  prompt: 'Create a cinematic 9:16 vertical commercial advertisement showing this product rotating slowly on a dark desk with subtle RGB lighting. Macro close-ups and smooth camera movement.',
   setPrompt: (prompt) => set({ prompt }),
   
   stylePreset: 'Cinematic',
@@ -20,18 +20,24 @@ export const useAIStudioStore = create((set) => ({
   aspectRatio: '9:16',
   setAspectRatio: (aspectRatio) => set({ aspectRatio }),
 
-  duration: 6,
+  duration: 5,
   setDuration: (duration) => set({ duration }),
 
   resolution: '720p',
   setResolution: (resolution) => set({ resolution }),
 
-  // Active Job & Generation State (Pre-loaded with sample demo video)
+  // Active Job & Generation State
   currentJobId: null,
   setCurrentJobId: (jobId) => set({ currentJobId: jobId }),
 
-  currentVideoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+  xaiRequestId: null,
+  setXaiRequestId: (id) => set({ xaiRequestId: id }),
+
+  currentVideoUrl: null,
   setCurrentVideoUrl: (url) => set({ currentVideoUrl: url }),
+
+  lastError: null,
+  setLastError: (error) => set({ lastError: error }),
 
   // Product Tag CTA: 'Shop Now' | 'View Product' | 'Buy Now' | 'Add to Cart'
   selectedCTA: 'Shop Now',
@@ -45,7 +51,9 @@ export const useAIStudioStore = create((set) => ({
   resetStudio: () =>
     set({
       currentJobId: null,
-      currentVideoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      xaiRequestId: null,
+      currentVideoUrl: null,
+      lastError: null,
       isPublishModalOpen: false,
     }),
 }));

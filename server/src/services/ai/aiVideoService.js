@@ -1,6 +1,7 @@
 import AIGenerationJob from '../../models/AIGenerationJob.js';
 import XAIProvider from './XAIProvider.js';
 import MockVideoGenerationProvider from './MockVideoGenerationProvider.js';
+import { Product } from '../../models/Product.js';
 import { XAI_VIDEO_PRICING, SUPPORTED_ASPECT_RATIOS, SUPPORTED_RESOLUTIONS, SUPPORTED_DURATIONS } from './xaiTypes.js';
 import { AIVideoError, ERROR_CODES } from './xaiErrors.js';
 
@@ -11,15 +12,24 @@ class AIVideoService {
   }
 
   getProvider() {
-    const apiKey = process.env.XAI_API_KEY;
-    if (apiKey && apiKey !== 'your_xai_api_key_placeholder' && apiKey !== 'xai_demo_key_placeholder') {
-      return this.xaiProvider;
+    const configuredProvider = (process.env.VIDEO_PROVIDER || 'xai').toLowerCase();
+
+    if (configuredProvider === 'mock') {
+      if (process.env.NODE_ENV === 'production') {
+        throw new AIVideoError(
+          'INVALID_CONFIGURATION',
+          'Production environment cannot use mock video generation provider. Set VIDEO_PROVIDER=xai in environment.',
+          500
+        );
+      }
+      return this.mockProvider;
     }
-    // Fall back to Mock Provider for local development if xAI key is missing or set to placeholder
-    return this.mockProvider;
+
+    // Default provider is xAI
+    return this.xaiProvider;
   }
 
-  calculateEstimatedCost(duration = 6, resolution = '720p', model = 'grok-imagine-video-1.5') {
+  calculateEstimatedCost(duration = 5, resolution = '720p', model = 'grok-imagine-video-1.5') {
     const modelPricing = XAI_VIDEO_PRICING[model] || XAI_VIDEO_PRICING['grok-imagine-video-1.5'];
     const resPricing = modelPricing[resolution] || modelPricing['720p'];
     return resPricing[duration] || 0.15;
@@ -27,22 +37,23 @@ class AIVideoService {
 
   sanitizePrompt(prompt) {
     if (!prompt || typeof prompt !== 'string') return '';
-    // Strip control characters & excessive whitespace
     return prompt.trim().replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').substring(0, 1000);
   }
 
   constructProductAwarePrompt(rawPrompt, product) {
     const cleanPrompt = this.sanitizePrompt(rawPrompt);
-    if (!product) return cleanPrompt;
+
+    const basePrompt = 'Create a premium vertical social-commerce product advertisement featuring the provided product image. Preserve the product\'s visual identity and important physical characteristics. Place the product in a visually appropriate environment. Use smooth cinematic camera movement, realistic lighting, detailed materials, professional advertising composition, and a strong hero shot at the end. Do not add fake specifications, prices, logos, labels, or text that were not provided.';
+
+    if (!product) return `${basePrompt} ${cleanPrompt}`;
 
     const brand = product.brand ? `${product.brand} ` : '';
     const title = product.title ? product.title.trim() : 'item';
-    const category = product.category ? ` in ${product.category}` : '';
 
-    return `Create a high-impact cinematic 9:16 vertical commercial advertisement featuring the ${brand}${title}${category}. ${cleanPrompt}. Keep the product visually consistent with the primary reference asset. Professional studio rim lighting, macro focus, smooth camera motion, realistic materials. No extraneous text overlays or logos.`;
+    return `${basePrompt} Product details: ${brand}${title}. ${cleanPrompt}`;
   }
 
-  async generateVideoJob({ userId, creatorId, productId, rawPrompt, inputImageUrl, duration = 6, aspectRatio = '9:16', resolution = '720p', productContext = null }) {
+  async generateVideoJob({ userId, creatorId, productId, rawPrompt, inputImageUrl, duration = 5, aspectRatio = '9:16', resolution = '720p' }) {
     if (!userId || !creatorId) {
       throw new AIVideoError(ERROR_CODES.UNAUTHORIZED, 'User authentication required for AI generation');
     }
@@ -52,34 +63,37 @@ class AIVideoService {
       throw new AIVideoError(ERROR_CODES.GENERATION_FAILED, 'Please provide a descriptive prompt of at least 5 characters');
     }
 
-    // Validate parameters
-    if (!SUPPORTED_ASPECT_RATIOS.includes(aspectRatio)) {
-      throw new AIVideoError(ERROR_CODES.UNSUPPORTED_RESOLUTION, `Invalid aspect ratio: ${aspectRatio}`);
-    }
-    if (!SUPPORTED_RESOLUTIONS.includes(resolution)) {
-      throw new AIVideoError(ERROR_CODES.UNSUPPORTED_RESOLUTION, `Invalid resolution: ${resolution}`);
-    }
-    if (!SUPPORTED_DURATIONS.includes(Number(duration))) {
-      throw new AIVideoError(ERROR_CODES.UNSUPPORTED_DURATION, `Invalid duration: ${duration}`);
+    // Retrieve product if productId provided
+    let productObj = null;
+    let finalInputImageUrl = inputImageUrl || null;
+
+    if (productId) {
+      try {
+        productObj = await Product.findById(productId);
+        if (productObj && productObj.image) {
+          finalInputImageUrl = productObj.image;
+        }
+      } catch {
+        // If not found in DB, check fallback
+      }
     }
 
-    const finalPrompt = this.constructProductAwarePrompt(cleanPrompt, productContext);
+    const finalPrompt = this.constructProductAwarePrompt(cleanPrompt, productObj);
     const provider = this.getProvider();
-    const model = 'grok-imagine-video-1.5';
+    const model = process.env.XAI_VIDEO_MODEL || 'grok-imagine-video-1.5';
     const estimatedCost = this.calculateEstimatedCost(Number(duration), resolution, model);
 
-    // Create database job record
+    // Initial database job record
     const job = new AIGenerationJob({
       userId,
       creatorId,
       productId: productId || null,
-      type: inputImageUrl ? 'image-to-video' : 'text-to-video',
+      type: finalInputImageUrl ? 'image-to-video' : 'text-to-video',
       provider: provider.name,
       model,
-      mode: inputImageUrl ? 'image-to-video' : 'text-to-video',
       prompt: cleanPrompt,
       enhancedPrompt: finalPrompt,
-      inputImageUrl: inputImageUrl || null,
+      inputImageUrl: finalInputImageUrl,
       status: 'QUEUED',
       progress: 0,
       estimatedCost,
@@ -92,18 +106,18 @@ class AIVideoService {
     await job.save();
 
     try {
-      // Dispatch generation request to xAI or mock provider
+      // Dispatch generation request to xAI API
       const dispatchResult = await provider.generateVideo({
         prompt: finalPrompt,
-        inputImageUrl,
+        inputImageUrl: finalInputImageUrl,
         duration: Number(duration),
         aspectRatio,
         resolution,
       });
 
-      job.requestId = dispatchResult.requestId;
-      job.status = dispatchResult.status || 'GENERATING';
-      job.progress = 10;
+      job.xaiRequestId = dispatchResult.xaiRequestId || dispatchResult.requestId;
+      job.requestId = job.xaiRequestId;
+      job.status = 'GENERATING';
       await job.save();
 
       return job;
@@ -111,6 +125,7 @@ class AIVideoService {
       job.status = 'FAILED';
       job.errorCode = err.code || ERROR_CODES.GENERATION_FAILED;
       job.errorMessage = err.message;
+      job.error = err.message;
       await job.save();
       throw err;
     }
@@ -122,37 +137,45 @@ class AIVideoService {
       throw new AIVideoError(ERROR_CODES.JOB_NOT_FOUND, 'Generation job not found', 404);
     }
 
-    // If job is already in terminal state, return directly
+    // If job is in terminal state, return stored state
     if (['COMPLETED', 'FAILED', 'EXPIRED', 'CANCELLED'].includes(job.status)) {
       return job;
     }
 
+    if (!job.xaiRequestId && !job.requestId) {
+      return job;
+    }
+
     const provider = this.getProvider();
+    const targetRequestId = job.xaiRequestId || job.requestId;
 
     try {
-      const providerStatus = await provider.getGenerationStatus(job.requestId);
+      const providerStatus = await provider.getGenerationStatus(targetRequestId);
 
       job.status = providerStatus.status;
-      job.progress = providerStatus.progress;
 
-      if (providerStatus.outputVideoUrl) {
-        job.outputVideoUrl = providerStatus.outputVideoUrl;
+      if (providerStatus.outputVideoUrl || providerStatus.videoUrl) {
+        const finalUrl = providerStatus.outputVideoUrl || providerStatus.videoUrl;
+        job.outputVideoUrl = finalUrl;
+        job.videoUrl = finalUrl;
       }
+
       if (providerStatus.thumbnailUrl) {
         job.thumbnailUrl = providerStatus.thumbnailUrl;
       }
 
       if (providerStatus.status === 'COMPLETED') {
         job.completedAt = new Date();
+        job.progress = 100;
       } else if (providerStatus.status === 'FAILED') {
         job.errorCode = providerStatus.errorCode || ERROR_CODES.GENERATION_FAILED;
-        job.errorMessage = providerStatus.errorMessage || 'AI generation failed';
+        job.errorMessage = providerStatus.errorMessage || 'AI video generation failed on provider side';
+        job.error = job.errorMessage;
       }
 
       await job.save();
       return job;
     } catch (err) {
-      // Maintain last known status on temporary network hiccups
       return job;
     }
   }

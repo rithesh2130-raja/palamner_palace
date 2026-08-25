@@ -30,10 +30,6 @@ const aiGenerationJobSchema = new mongoose.Schema(
       type: String,
       default: 'grok-imagine-video-1.5',
     },
-    mode: {
-      type: String,
-      default: 'image-to-video',
-    },
     prompt: {
       type: String,
       required: true,
@@ -46,6 +42,11 @@ const aiGenerationJobSchema = new mongoose.Schema(
     inputImageUrl: {
       type: String,
       default: null,
+    },
+    xaiRequestId: {
+      type: String,
+      default: null,
+      index: true,
     },
     requestId: {
       type: String,
@@ -61,14 +62,12 @@ const aiGenerationJobSchema = new mongoose.Schema(
     progress: {
       type: Number,
       default: 0,
-      min: 0,
-      max: 100,
     },
-    outputVideoUrl: {
+    videoUrl: {
       type: String,
       default: null,
     },
-    outputFileId: {
+    outputVideoUrl: {
       type: String,
       default: null,
     },
@@ -86,7 +85,7 @@ const aiGenerationJobSchema = new mongoose.Schema(
     },
     duration: {
       type: Number,
-      default: 6,
+      default: 5,
     },
     aspectRatio: {
       type: String,
@@ -95,6 +94,10 @@ const aiGenerationJobSchema = new mongoose.Schema(
     resolution: {
       type: String,
       default: '720p',
+    },
+    error: {
+      type: String,
+      default: null,
     },
     errorCode: {
       type: String,
@@ -108,15 +111,11 @@ const aiGenerationJobSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    expiresAt: {
-      type: Date,
-      default: null,
-    },
   },
   {
     timestamps: true,
   }
 );
 
-export const AIGenerationJob = mongoose.model('AIGenerationJob', aiGenerationJobSchema);
+export const AIGenerationJob = mongoose.models.AIGenerationJob || mongoose.model('AIGenerationJob', aiGenerationJobSchema);
 export default AIGenerationJob;
