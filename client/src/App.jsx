@@ -5,6 +5,7 @@ import { AppRoutes } from './routes/AppRoutes.jsx';
 import { ToastContainer } from './components/ui/ToastContainer.jsx';
 import { LocationModal } from './components/common/LocationModal.jsx';
 
+import { ThemeProvider } from './context/ThemeContext.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { CartProvider } from './context/CartContext.jsx';
 import { WishlistProvider } from './context/WishlistContext.jsx';
@@ -25,25 +26,27 @@ const queryClient = new QueryClient({
 export const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <LocationProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <NotificationProvider>
-                <ToastProvider>
-                  <ModalProvider>
-                    <BrowserRouter>
-                      <AppRoutes />
-                      <ToastContainer />
-                      <LocationModal />
-                    </BrowserRouter>
-                  </ModalProvider>
-                </ToastProvider>
-              </NotificationProvider>
-            </WishlistProvider>
-          </CartProvider>
-        </LocationProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <LocationProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <NotificationProvider>
+                  <ToastProvider>
+                    <ModalProvider>
+                      <BrowserRouter>
+                        <AppRoutes />
+                        <ToastContainer />
+                        <LocationModal />
+                      </BrowserRouter>
+                    </ModalProvider>
+                  </ToastProvider>
+                </NotificationProvider>
+              </WishlistProvider>
+            </CartProvider>
+          </LocationProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

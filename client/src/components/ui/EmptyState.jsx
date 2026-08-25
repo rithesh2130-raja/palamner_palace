@@ -1,29 +1,29 @@
 import React from 'react';
 import { PackageOpen } from 'lucide-react';
-import { Button } from './Button.jsx';
-import { Link } from 'react-router-dom';
+import Button from './Button.jsx';
 
 export const EmptyState = ({
   icon: Icon = PackageOpen,
   title = 'No items found',
-  description = 'Looks like there is nothing here yet. Explore our products and add them to your list.',
-  actionLabel = 'Explore Products',
-  actionTo = '/products'
+  description = 'There are no items available right now. Check back later or try adjusting your filters.',
+  actionLabel,
+  onAction,
+  className = '',
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center text-center p-8 bg-slate-900/60 border border-slate-800 rounded-3xl space-y-4 my-6">
-      <div className="p-4 bg-slate-800/80 rounded-2xl text-amber-400">
-        <Icon className="w-10 h-10" />
+    <div className={`flex flex-col items-center justify-center text-center p-8 sm:p-12 bg-surface border border-border rounded-xl my-4 ${className}`}>
+      <div className="w-16 h-16 rounded-full bg-surface-secondary flex items-center justify-center text-text-muted mb-4">
+        <Icon className="w-8 h-8" />
       </div>
-      <h3 className="text-xl font-bold text-white tracking-tight">{title}</h3>
-      <p className="text-sm text-slate-400 max-w-md leading-relaxed">{description}</p>
-      {actionLabel && actionTo && (
-        <Link to={actionTo} className="pt-2">
-          <Button variant="primary" size="md">
-            {actionLabel}
-          </Button>
-        </Link>
+      <h3 className="text-lg font-bold text-text-primary mb-1">{title}</h3>
+      <p className="text-sm text-text-muted max-w-md mb-6">{description}</p>
+      {actionLabel && onAction && (
+        <Button variant="primary" onClick={onAction}>
+          {actionLabel}
+        </Button>
       )}
     </div>
   );
 };
+
+export default EmptyState;

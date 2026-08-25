@@ -1,33 +1,116 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import { Header } from '../common/Header.jsx';
-import { MainNavigation } from '../common/MainNavigation.jsx';
-import { MobileNavigation } from '../common/MobileNavigation.jsx';
+import React, { useState } from 'react';
+import { Outlet, Link } from 'react-router-dom';
+import Header from '../common/Header.jsx';
+import SecondaryNavigation from '../common/SecondaryNavigation.jsx';
+import Footer from '../common/Footer.jsx';
+import MobileNavigation from '../common/MobileNavigation.jsx';
+import Drawer from '../ui/Drawer.jsx';
+import { ShoppingBag, Clapperboard, Layers, Tag, Shield, Heart, User, LogOut } from 'lucide-react';
 
 export const CustomerLayout = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
-    <div className="min-h-screen flex flex-col bg-white text-black pb-16 md:pb-0">
-      <Header />
-      <MainNavigation />
-      
-      <main className="flex-1 bg-white">
+    <div className="min-h-screen flex flex-col bg-page text-text-primary transition-colors">
+      {/* Customer Header */}
+      <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
+
+      {/* Secondary Category Navigation */}
+      <SecondaryNavigation />
+
+      {/* Main Page Outlet */}
+      <main className="flex-1 w-full pb-16 lg:pb-0">
         <Outlet />
       </main>
 
-      {/* Black Premium Footer */}
-      <footer className="bg-black text-neutral-400 border-t border-neutral-800 py-10 text-center text-xs">
-        <div className="max-w-7xl mx-auto px-4 space-y-3">
-          <p className="font-extrabold text-white text-sm tracking-wide">
-            PALAMNER<span className="text-[#E50914]">PALACE</span> — Social Commerce Marketplace
-          </p>
-          <p className="text-neutral-400 max-w-xl mx-auto leading-relaxed">
-            Discover authentic handwoven silks, regional handicrafts, electronics, and short-video shoppable reels. Powered by pure MERN stack and AI video generation.
-          </p>
-          <p className="text-neutral-500">© 2026 PalamnerPalace Inc. All rights reserved.</p>
-        </div>
-      </footer>
+      {/* Customer Footer */}
+      <Footer />
 
+      {/* Mobile Bottom Navigation */}
       <MobileNavigation />
+
+      {/* Mobile Menu Drawer */}
+      <Drawer
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        title="Menu & Navigation"
+        position="right"
+      >
+        <div className="space-y-4 py-2">
+          <div className="p-4 rounded-lg bg-surface-secondary flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-accent text-gray-950 font-bold flex items-center justify-center">
+              U
+            </div>
+            <div>
+              <p className="font-bold text-text-primary text-sm">Welcome Guest</p>
+              <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} className="text-xs text-accent font-semibold hover:underline">
+                Sign In / Register
+              </Link>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Link
+              to="/products"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-surface-secondary text-sm font-semibold text-text-primary"
+            >
+              <ShoppingBag className="w-4 h-4 text-accent" />
+              <span>Browse Catalog</span>
+            </Link>
+            <Link
+              to="/reels"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-surface-secondary text-sm font-semibold text-text-primary"
+            >
+              <Clapperboard className="w-4 h-4 text-accent" />
+              <span>Trending Reels Feed</span>
+            </Link>
+            <Link
+              to="/deals"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-surface-secondary text-sm font-semibold text-text-primary"
+            >
+              <Tag className="w-4 h-4 text-accent" />
+              <span>Today's Deals</span>
+            </Link>
+            <Link
+              to="/categories"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-surface-secondary text-sm font-semibold text-text-primary"
+            >
+              <Layers className="w-4 h-4 text-accent" />
+              <span>All Categories</span>
+            </Link>
+            <Link
+              to="/wishlist"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-surface-secondary text-sm font-semibold text-text-primary"
+            >
+              <Heart className="w-4 h-4 text-accent" />
+              <span>Wishlist</span>
+            </Link>
+            <Link
+              to="/creator/studio"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-surface-secondary text-sm font-semibold text-text-primary"
+            >
+              <User className="w-4 h-4 text-accent" />
+              <span>Creator Studio</span>
+            </Link>
+            <Link
+              to="/admin"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-surface-secondary text-sm font-semibold text-text-primary"
+            >
+              <Shield className="w-4 h-4 text-accent" />
+              <span>Admin Portal</span>
+            </Link>
+          </div>
+        </div>
+      </Drawer>
     </div>
   );
 };
+
+export default CustomerLayout;
