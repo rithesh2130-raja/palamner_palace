@@ -7,12 +7,12 @@ import Badge from '../../components/ui/Badge.jsx';
 import Button from '../../components/ui/Button.jsx';
 import ReelShell from '../../components/reels/ReelShell.jsx';
 import { mockProducts, mockReels, mockCategories } from '../../mock/index.js';
-import { Sparkles, Flame, Play, ArrowRight, ShieldCheck, Truck, RefreshCw, Award } from 'lucide-react';
+import { Sparkles, Play, ArrowRight, ShieldCheck, Truck, RefreshCw, Award, Wand2 } from 'lucide-react';
 
 export const HomePage = () => {
   return (
     <div className="space-y-8 pb-12">
-      {/* 1. HERO BANNER PLACEHOLDER */}
+      {/* 1. HERO BANNER */}
       <section className="bg-gradient-to-r from-gray-900 via-primary to-primary-secondary text-white py-12 px-6 rounded-2xl shadow-xl relative overflow-hidden my-6 border border-gray-800">
         <div className="max-w-3xl space-y-4 relative z-10">
           <Badge variant="deal" size="lg" className="shadow-md">
@@ -30,9 +30,9 @@ export const HomePage = () => {
                 Explore Reels Feed
               </Button>
             </Link>
-            <Link to="/products">
-              <Button size="lg" variant="outline" className="text-white border-gray-600 hover:bg-white/10 font-bold">
-                Browse Marketplace
+            <Link to="/creator/studio/create">
+              <Button size="lg" variant="outline" icon={Wand2} className="text-white border-gray-600 hover:bg-white/10 font-bold">
+                AI Reel Studio
               </Button>
             </Link>
           </div>
@@ -40,7 +40,7 @@ export const HomePage = () => {
       </section>
 
       <PageContainer>
-        {/* 2. CATEGORY TILES PLACEHOLDER */}
+        {/* 2. CATEGORY TILES */}
         <Section title="Shop by Category" subtitle="Discover trending collections across top departments">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
             {mockCategories.map((cat) => (
@@ -78,10 +78,10 @@ export const HomePage = () => {
           </div>
         </Section>
 
-        {/* 4. TODAY'S HOT DEALS */}
+        {/* 4. TODAY'S HOT DEALS & AI REEL BUTTON */}
         <Section
           title="Today's Flash Deals"
-          subtitle="Limited time discounts on top-rated products"
+          subtitle="Limited time discounts on top-rated products — generate an AI Reel for any item"
           action={
             <Link to="/deals" className="text-accent hover:underline text-sm font-bold flex items-center gap-1">
               All Deals <ArrowRight className="w-4 h-4" />
@@ -102,6 +102,14 @@ export const HomePage = () => {
                       <Badge variant="deal">{product.badge}</Badge>
                     </div>
                   )}
+                  {/* Create AI Reel Overlay Button */}
+                  <Link
+                    to={`/creator/studio/create?productId=${product.id}`}
+                    className="absolute bottom-2 right-2 z-10 px-2.5 py-1 rounded-lg bg-gray-950/90 text-accent font-bold text-[11px] border border-accent/40 flex items-center gap-1 hover:scale-105 transition-transform shadow-md"
+                  >
+                    <Wand2 className="w-3.5 h-3.5" />
+                    <span>AI Reel</span>
+                  </Link>
                 </div>
                 <CardContent className="flex-1 flex flex-col justify-between p-4 gap-3">
                   <div>

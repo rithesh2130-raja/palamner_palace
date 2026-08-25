@@ -7,6 +7,8 @@ import AdminLayout from '../components/layouts/AdminLayout.jsx';
 import HomePage from '../pages/customer/HomePage.jsx';
 import ReelsPage from '../pages/customer/ReelsPage.jsx';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage.jsx';
+import AIStudioPage from '../pages/creator/AIStudioPage.jsx';
+import AdminAIPage from '../pages/admin/AdminAIPage.jsx';
 import PlaceholderPage from '../pages/common/PlaceholderPage.jsx';
 import NotFoundPage from '../pages/customer/NotFoundPage.jsx';
 
@@ -41,24 +43,25 @@ export const AppRoutes = () => {
         <Route path="404" element={<NotFoundPage />} />
       </Route>
 
-      {/* Creator Application Shell Routes */}
+      {/* Creator Studio & AI Reel Creation Routes */}
       <Route path="/creator" element={<CreatorRoute><CreatorLayout /></CreatorRoute>}>
         <Route path="studio" element={<PlaceholderPage title="Creator Studio Overview" dayPlanned="Day 15" />} />
         <Route path="studio/reels" element={<PlaceholderPage title="Creator Video Reels Manager" dayPlanned="Day 15" />} />
-        <Route path="studio/create" element={<PlaceholderPage title="Upload & Publish Reel Studio" dayPlanned="Day 15" />} />
+        <Route path="studio/create" element={<AIStudioPage />} />
         <Route path="studio/analytics" element={<PlaceholderPage title="Creator Performance & Conversion Analytics" dayPlanned="Day 16" />} />
         <Route path="studio/earnings" element={<PlaceholderPage title="Creator Affiliate Earnings & Payouts" dayPlanned="Day 16" />} />
         <Route path="studio/campaigns" element={<PlaceholderPage title="Brand Sponsorship Campaigns" dayPlanned="Day 16" />} />
         <Route path="studio/settings" element={<PlaceholderPage title="Creator Profile & Channel Settings" dayPlanned="Day 15" />} />
       </Route>
 
-      {/* Admin Application Shell Routes */}
+      {/* Admin Application Shell & AI Analytics Routes */}
       <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
         <Route index element={<AdminDashboardPage />} />
+        <Route path="ai" element={<AdminAIPage />} />
         <Route path="products" element={<PlaceholderPage title="Admin Product Catalog Management" dayPlanned="Day 17" />} />
         <Route path="categories" element={<PlaceholderPage title="Admin Category Hierarchy Manager" dayPlanned="Day 17" />} />
         <Route path="inventory" element={<PlaceholderPage title="Admin Warehouse & Inventory Control" dayPlanned="Day 17" />} />
-        <Route path="orders" element={<PlaceholderPage title="Admin Order Fulfillment & Logistics" dayPlanned="Day 17 text" />} />
+        <Route path="orders" element={<PlaceholderPage title="Admin Order Fulfillment & Logistics" dayPlanned="Day 17" />} />
         <Route path="customers" element={<PlaceholderPage title="Admin Customer Relationship Manager" dayPlanned="Day 17" />} />
         <Route path="sellers" element={<PlaceholderPage title="Admin Seller Onboarding & Payouts" dayPlanned="Day 17" />} />
         <Route path="creators" element={<PlaceholderPage title="Admin Creator Verification & Badging" dayPlanned="Day 17" />} />

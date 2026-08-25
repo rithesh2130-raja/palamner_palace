@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
+  Wand2,
   Package,
   Layers,
   Boxes,
@@ -47,6 +48,7 @@ export const AdminLayout = () => {
 
   const adminNavItems = [
     { label: 'Dashboard', path: '/admin', icon: LayoutDashboard },
+    { label: 'AI Video Analytics', path: '/admin/ai', icon: Wand2 },
     { label: 'Products', path: '/admin/products', icon: Package },
     { label: 'Categories', path: '/admin/categories', icon: Layers },
     { label: 'Inventory', path: '/admin/inventory', icon: Boxes },
