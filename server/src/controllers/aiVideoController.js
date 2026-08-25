@@ -1,6 +1,6 @@
 import { aiVideoService } from '../services/ai/aiVideoService.js';
 import { getHumanReadableErrorMessage } from '../services/ai/xaiErrors.js';
-import Product from '../models/Product.js';
+import { Product } from '../models/Product.js';
 
 export const generateVideo = async (req, res) => {
   try {
