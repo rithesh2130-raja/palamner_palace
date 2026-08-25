@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Wand2, History, LayoutTemplate, Upload, Coins } from 'lucide-react';
+import { ArrowLeft, Sparkles, Wand2, History, LayoutTemplate, Upload, ShieldCheck } from 'lucide-react';
 import Button from '../ui/Button.jsx';
 import Badge from '../ui/Badge.jsx';
 import useAIStudioStore from '../../store/useAIStudioStore.js';
@@ -68,11 +68,11 @@ export const StudioHeader = () => {
         })}
       </nav>
 
-      {/* RIGHT: Creator Credit & Status */}
+      {/* RIGHT: Free Tier Usage Protection Badge */}
       <div className="flex items-center gap-3">
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs font-semibold text-accent">
-          <Coins className="w-4 h-4" />
-          <span>85 AI Credits</span>
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-xs font-bold text-emerald-400">
+          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <span>Free Usage Cap Active (5/day max)</span>
         </div>
         <Button
           size="sm"

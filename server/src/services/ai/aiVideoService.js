@@ -25,7 +25,6 @@ class AIVideoService {
       return this.mockProvider;
     }
 
-    // Default provider is xAI
     return this.xaiProvider;
   }
 
@@ -61,6 +60,24 @@ class AIVideoService {
     const cleanPrompt = this.sanitizePrompt(rawPrompt);
     if (!cleanPrompt || cleanPrompt.length < 5) {
       throw new AIVideoError(ERROR_CODES.GENERATION_FAILED, 'Please provide a descriptive prompt of at least 5 characters');
+    }
+
+    // STRICT FREE TIER USAGE LIMITER (Prevents unexpected API charges)
+    const dailyLimit = Number(process.env.XAI_FREE_DAILY_LIMIT) || 5;
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const recentJobsCount = await AIGenerationJob.countDocuments({
+      creatorId,
+      createdAt: { $gte: twentyFourHoursAgo },
+      status: { $in: ['QUEUED', 'GENERATING', 'PROCESSING', 'COMPLETED'] },
+    }).catch(() => 0);
+
+    if (recentJobsCount >= dailyLimit) {
+      throw new AIVideoError(
+        'FREE_TIER_LIMIT_EXCEEDED',
+        `Free Tier Daily Limit Reached (${recentJobsCount}/${dailyLimit} generations in 24h). Further requests are strictly blocked to prevent unexpected API usage charges.`,
+        429
+      );
     }
 
     // Retrieve product if productId provided
@@ -137,7 +154,6 @@ class AIVideoService {
       throw new AIVideoError(ERROR_CODES.JOB_NOT_FOUND, 'Generation job not found', 404);
     }
 
-    // If job is in terminal state, return stored state
     if (['COMPLETED', 'FAILED', 'EXPIRED', 'CANCELLED'].includes(job.status)) {
       return job;
     }
