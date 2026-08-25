@@ -26,11 +26,11 @@ export const useAIStudioStore = create((set) => ({
   resolution: '720p',
   setResolution: (resolution) => set({ resolution }),
 
-  // Active Job & Generation State
+  // Active Job & Generation State (Pre-loaded with sample demo video)
   currentJobId: null,
   setCurrentJobId: (jobId) => set({ currentJobId: jobId }),
 
-  currentVideoUrl: null,
+  currentVideoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
   setCurrentVideoUrl: (url) => set({ currentVideoUrl: url }),
 
   // Product Tag CTA: 'Shop Now' | 'View Product' | 'Buy Now' | 'Add to Cart'
@@ -45,7 +45,7 @@ export const useAIStudioStore = create((set) => ({
   resetStudio: () =>
     set({
       currentJobId: null,
-      currentVideoUrl: null,
+      currentVideoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
       isPublishModalOpen: false,
     }),
 }));
