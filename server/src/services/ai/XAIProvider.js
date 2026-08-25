@@ -31,7 +31,7 @@ export class XAIProvider extends VideoGenerationProvider {
     const resolution = params.resolution || '720p';
     const isImageMode = Boolean(params.inputImageUrl && typeof params.inputImageUrl === 'string' && params.inputImageUrl.startsWith('http'));
 
-    // Step 1: Log outgoing xAI request safely (Requirement Step 1 & 7)
+    // Step 1: Log outgoing xAI request safely
     console.log(`\n[xAI DEBUG] model: ${this.model}`);
     console.log(`[xAI DEBUG] prompt: ${params.prompt}`);
     console.log(`[xAI DEBUG] duration: ${duration}`);
@@ -40,7 +40,7 @@ export class XAIProvider extends VideoGenerationProvider {
     console.log(`[xAI DEBUG] image mode: ${isImageMode ? 'IMAGE-TO-VIDEO' : 'TEXT-TO-VIDEO'}`);
     console.log(`[xAI DEBUG] image URL present: ${isImageMode ? 'YES' : 'NO'}`);
 
-    // Construct Payload cleanly (Requirement Step 3 & 9)
+    // Construct Payload cleanly
     const payload = {
       model: this.model,
       prompt: params.prompt,
@@ -64,7 +64,7 @@ export class XAIProvider extends VideoGenerationProvider {
         body: JSON.stringify(payload),
       });
 
-      // Step 2: Log actual xAI error body if not ok (Requirement Step 2)
+      // Step 2: Log actual xAI error body if not ok
       if (!response.ok) {
         const responseText = await response.text();
         console.error('[xAI ERROR]', {
@@ -87,11 +87,11 @@ export class XAIProvider extends VideoGenerationProvider {
             401
           );
         }
-        if (response.status === 402 || response.status === 429) {
+        if (response.status === 403 || response.status === 402 || response.status === 429) {
           throw new AIVideoError(
             'XAI_BILLING_ERROR',
-            `AI video generation unavailable (HTTP ${response.status}): ${parsedError}`,
-            429
+            `xAI Account Credits Required (HTTP ${response.status}): ${parsedError}`,
+            response.status
           );
         }
 
