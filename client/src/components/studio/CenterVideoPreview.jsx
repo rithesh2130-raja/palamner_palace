@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize2, RotateCcw, Check, Sparkles, Wand2, Download, ShoppingCart } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, RotateCcw, Check, Wand2, Download } from 'lucide-react';
 import Button from '../ui/Button.jsx';
 import Badge from '../ui/Badge.jsx';
 import useAIStudioStore from '../../store/useAIStudioStore.js';
@@ -16,7 +16,7 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo }
   } = useAIStudioStore();
 
   const videoRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [progress, setProgress] = useState(0);
 
@@ -40,7 +40,7 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo }
         videoRef.current.pause();
         setIsPlaying(false);
       } else {
-        videoRef.current.play();
+        videoRef.current.play().catch(() => {});
         setIsPlaying(true);
       }
     }
@@ -70,7 +70,7 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo }
       <div className="relative w-[320px] sm:w-[350px] h-[580px] bg-black rounded-3xl overflow-hidden border-4 border-gray-800 shadow-2xl flex flex-col justify-between">
         {/* Active Generated Video Player */}
         {currentVideoUrl ? (
-          <div className="relative w-full h-full bg-black group">
+          <div className="relative w-full h-full bg-black group" onClick={handleTogglePlay}>
             <video
               ref={videoRef}
               src={currentVideoUrl}
@@ -78,6 +78,7 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo }
               loop
               muted={isMuted}
               playsInline
+              preload="auto"
               onTimeUpdate={handleTimeUpdate}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
@@ -85,14 +86,17 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo }
             />
 
             {/* Video Controls Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 opacity-0 group-hover:opacity-100 transition-opacity p-4 flex flex-col justify-between">
+            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 opacity-0 group-hover:opacity-100 transition-opacity p-4 flex flex-col justify-between pointer-events-none">
               {/* Top Reel Badge */}
-              <div className="flex items-center justify-between text-white">
+              <div className="flex items-center justify-between text-white pointer-events-auto">
                 <Badge variant="deal" size="sm">AI REEL PREVIEW</Badge>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setIsMuted(!isMuted)}
-                    className="p-2 rounded-full bg-black/50 text-white hover:bg-black"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMuted(!isMuted);
+                    }}
+                    className="p-2 rounded-full bg-black/60 text-white hover:bg-black"
                   >
                     {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                   </button>
@@ -100,9 +104,12 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo }
               </div>
 
               {/* Center Play/Pause Trigger */}
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center pointer-events-auto">
                 <button
-                  onClick={handleTogglePlay}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTogglePlay();
+                  }}
                   className="p-4 rounded-full bg-accent/90 text-gray-950 shadow-xl hover:scale-110 transition-transform"
                 >
                   {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 fill-current" />}
@@ -111,7 +118,7 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo }
 
               {/* Bottom Tagged Product CTA Strip */}
               {selectedProduct && (
-                <div className="p-3 rounded-xl bg-gray-900/90 backdrop-blur-md border border-white/20 flex items-center justify-between gap-3 text-white">
+                <div className="p-3 rounded-xl bg-gray-900/90 backdrop-blur-md border border-white/20 flex items-center justify-between gap-3 text-white pointer-events-auto">
                   <div className="flex items-center gap-2 min-w-0">
                     <img src={selectedProduct.image} alt={selectedProduct.title} className="w-9 h-9 rounded object-cover shrink-0" />
                     <div className="flex flex-col min-w-0">

@@ -10,13 +10,22 @@ export class MockVideoGenerationProvider extends VideoGenerationProvider {
     const requestId = `mock_req_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const startTime = Date.now();
 
+    // High quality public Google CDN sample MP4 videos with 100% open CORS access
+    const sampleVideos = [
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyattacks.mp4',
+    ];
+
+    const selectedVideoUrl = sampleVideos[Math.floor(Math.random() * sampleVideos.length)];
+
     const mockJob = {
       requestId,
       startTime,
       duration: params.duration || 6,
       prompt: params.prompt,
-      // Sample high quality demo videos for development preview
-      mockVideoUrl: params.mockVideoUrl || 'https://assets.mixkit.co/videos/preview/mixkit-hand-holding-a-smartphone-showing-a-game-41553-large.mp4',
+      mockVideoUrl: selectedVideoUrl,
       mockThumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80',
     };
 
@@ -32,25 +41,23 @@ export class MockVideoGenerationProvider extends VideoGenerationProvider {
   async getGenerationStatus(requestId) {
     const job = this.mockJobs.get(requestId);
     if (!job) {
-      // Return completed fallback for static/unknown IDs
       return {
         requestId,
         status: 'COMPLETED',
         progress: 100,
-        outputVideoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hands-typing-on-a-luminous-keyboard-41555-large.mp4',
+        outputVideoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800&auto=format&fit=crop&q=80',
       };
     }
 
     const elapsedMs = Date.now() - job.startTime;
-    // Simulate realistic 6-second progress simulation for development testing
-    const totalSimTimeMs = 6000;
+    const totalSimTimeMs = 5000;
 
-    if (elapsedMs < 1500) {
+    if (elapsedMs < 1200) {
       return {
         requestId,
         status: 'QUEUED',
-        progress: 15,
+        progress: 20,
         outputVideoUrl: null,
       };
     } else if (elapsedMs < totalSimTimeMs) {

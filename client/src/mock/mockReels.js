@@ -4,7 +4,7 @@ import { mockCreators } from './mockCreators.js';
 export const mockReels = [
   {
     id: 'reel-1',
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hand-holding-a-smartphone-showing-a-game-41553-large.mp4',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80',
     caption: 'Ultimate Wireless Headset review! Sound clarity is unreal 🔥 #gaming #setup #review',
     hashtags: ['#gaming', '#setup', '#tech', '#review'],
@@ -19,7 +19,7 @@ export const mockReels = [
   },
   {
     id: 'reel-2',
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hands-typing-on-a-luminous-keyboard-41555-large.mp4',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
     thumbnail: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800&auto=format&fit=crop&q=80',
     caption: 'Satisfying mechanical keyboard sound test ⌨️ sound ON! #keyboard #asmr #desksetup',
     hashtags: ['#keyboard', '#asmr', '#desksetup', '#gaming'],
@@ -34,7 +34,7 @@ export const mockReels = [
   },
   {
     id: 'reel-3',
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-woman-applying-facial-cream-41554-large.mp4',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
     thumbnail: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=800&auto=format&fit=crop&q=80',
     caption: 'Morning glow routine in under 3 minutes ✨ Vitamin C works magic #skincare #glowup',
     hashtags: ['#skincare', '#glowup', '#beauty', '#routine'],
@@ -49,7 +49,7 @@ export const mockReels = [
   },
   {
     id: 'reel-4',
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-unboxing-a-gift-box-41552-large.mp4',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyattacks.mp4',
     thumbnail: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800&auto=format&fit=crop&q=80',
     caption: 'What fits in my minimal leather bag? 👜 #fashion #whatisinmybag #aesthetic',
     hashtags: ['#fashion', '#whatisinmybag', '#aesthetic', '#style'],
