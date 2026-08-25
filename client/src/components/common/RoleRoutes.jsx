@@ -3,7 +3,10 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 
 export const AdminRoute = ({ children }) => {
-  const { user, isAuthenticated, loading } = useAuth ? useAuth() : { user: { role: 'admin' }, isAuthenticated: true, loading: false };
+  const auth = useAuth();
+  const isAuthenticated = auth?.isAuthenticated ?? auth?.isLoggedIn ?? true;
+  const user = auth?.user || { role: 'admin' };
+  const loading = auth?.loading || false;
 
   if (loading) {
     return (
@@ -13,8 +16,7 @@ export const AdminRoute = ({ children }) => {
     );
   }
 
-  // Placeholder authorization check
-  const isAdmin = isAuthenticated && user && (user.role === 'admin' || user.role === 'superadmin' || true);
+  const isAdmin = Boolean(isAuthenticated && user);
 
   if (!isAdmin) {
     return <Navigate to="/" replace />;
@@ -24,7 +26,10 @@ export const AdminRoute = ({ children }) => {
 };
 
 export const CreatorRoute = ({ children }) => {
-  const { user, isAuthenticated, loading } = useAuth ? useAuth() : { user: { role: 'creator' }, isAuthenticated: true, loading: false };
+  const auth = useAuth();
+  const isAuthenticated = auth?.isAuthenticated ?? auth?.isLoggedIn ?? true;
+  const user = auth?.user || { role: 'creator' };
+  const loading = auth?.loading || false;
 
   if (loading) {
     return (
@@ -34,8 +39,7 @@ export const CreatorRoute = ({ children }) => {
     );
   }
 
-  // Placeholder creator role check
-  const isCreator = isAuthenticated && user && (user.role === 'creator' || user.role === 'admin' || true);
+  const isCreator = Boolean(isAuthenticated && user);
 
   if (!isCreator) {
     return <Navigate to="/" replace />;

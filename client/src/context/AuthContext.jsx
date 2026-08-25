@@ -7,7 +7,7 @@ export const AuthProvider = ({ children }) => {
     name: 'Rajesh Kumar',
     email: 'rajesh.palamner@example.com',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-    role: 'customer',
+    role: 'creator', // Enable creator & admin capabilities by default in dev
     pincode: '517408',
     city: 'Palamner, Andhra Pradesh'
   });
@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
       name: 'Rajesh Kumar',
       email: 'rajesh.palamner@example.com',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      role: 'customer',
+      role: 'creator',
       pincode: '517408',
       city: 'Palamner, Andhra Pradesh'
     });
@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn, login, logout, toggleAuth }}>
+    <AuthContext.Provider value={{ user, isLoggedIn, isAuthenticated: isLoggedIn, login, logout, toggleAuth }}>
       {children}
     </AuthContext.Provider>
   );
