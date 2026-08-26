@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Wand2, Film, Clock, Monitor, Coins, AlertCircle } from 'lucide-react';
+import { Sparkles, Wand2, Film, Clock, Monitor, Coins, Cpu } from 'lucide-react';
 import Button from '../ui/Button.jsx';
 import Badge from '../ui/Badge.jsx';
 import useAIStudioStore from '../../store/useAIStudioStore.js';
@@ -27,10 +27,10 @@ export const LeftControlPanel = ({ isGenerating, setIsGenerating, onError }) => 
   const [isEnhancing, setIsEnhancing] = useState(false);
 
   const styleOptions = [
-    { name: 'Cinematic', desc: 'Dramatic lighting & shallow focus' },
-    { name: 'Product Commercial', desc: 'Clean studio rim light & macro details' },
+    { name: 'Cinematic', desc: 'Dramatic studio lighting & macro focus' },
+    { name: 'Product Commercial', desc: 'Clean rim light & hero product rotation' },
     { name: 'Lifestyle', desc: 'Warm natural light & cozy atmosphere' },
-    { name: 'Minimal', desc: 'Scandinavian clean background' },
+    { name: 'Minimal', desc: 'Scandinavian clean aesthetic' },
     { name: 'Luxury', desc: 'Glossy dark surface & gold accents' },
     { name: 'Gaming', desc: 'Neon RGB lighting & cyber haze' },
     { name: 'Futuristic', desc: 'Holographic glow & sci-fi textures' },
@@ -55,7 +55,7 @@ export const LeftControlPanel = ({ isGenerating, setIsGenerating, onError }) => 
       const enhanced = await callEnhancePrompt(prompt, selectedProduct || {});
       setPrompt(enhanced);
     } catch {
-      setPrompt(`Create a premium cinematic 9:16 social commercial advertisement. ${prompt}. Professional studio lighting, shallow depth of field, 60fps smooth camera pan, macro texture close-ups.`);
+      setPrompt(`Create a premium cinematic 9:16 social commercial advertisement. ${prompt}. Professional studio lighting, shallow depth of field, smooth camera pan, macro texture close-ups.`);
     } finally {
       setIsEnhancing(false);
     }
@@ -82,12 +82,12 @@ export const LeftControlPanel = ({ isGenerating, setIsGenerating, onError }) => 
       if (data.jobId) {
         setCurrentJobId(data.jobId);
       }
-      if (data.xaiRequestId) {
-        setXaiRequestId(data.xaiRequestId);
+      if (data.xaiRequestId || data.requestId) {
+        setXaiRequestId(data.xaiRequestId || data.requestId);
       }
     } catch (err) {
       setIsGenerating(false);
-      const errMsg = err.message || 'xAI Video Generation failed';
+      const errMsg = err.message || 'Wan 2.1 Video Generation failed';
       setLastError(errMsg);
       if (onError) onError(errMsg);
     }
@@ -100,17 +100,17 @@ export const LeftControlPanel = ({ isGenerating, setIsGenerating, onError }) => 
         <div className="flex items-center gap-2">
           <Wand2 className="w-5 h-5 text-accent" />
           <h2 className="text-base font-bold text-text-primary uppercase tracking-wide">
-            CREATE WITH xAI
+            CREATE WITH WAN 2.1
           </h2>
         </div>
-        <Badge variant="prime" size="sm">grok-imagine-video-1.5</Badge>
+        <Badge variant="prime" size="sm">VACE 1.3B (Apache 2.0)</Badge>
       </div>
 
       {/* 1. Prompt Textarea & Counter */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <label className="text-xs font-bold text-text-primary uppercase tracking-wider">
-            Video Prompt Description
+            Reel Video Prompt Description
           </label>
           <button
             type="button"
@@ -129,7 +129,7 @@ export const LeftControlPanel = ({ isGenerating, setIsGenerating, onError }) => 
             onChange={(e) => setPrompt(e.target.value.substring(0, 1000))}
             disabled={isGenerating}
             rows={4}
-            placeholder="Describe the Reel video you want xAI Grok to generate..."
+            placeholder="Describe the Reel video you want Wan 2.1 VACE 1.3B to generate..."
             className="w-full p-3 text-xs bg-surface-secondary border border-border rounded-xl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent resize-none disabled:opacity-60"
           />
           <span className="absolute bottom-2.5 right-3 text-[10px] text-text-muted font-mono">
@@ -216,7 +216,7 @@ export const LeftControlPanel = ({ isGenerating, setIsGenerating, onError }) => 
             disabled={isGenerating}
             className="h-9 px-2 text-xs font-bold bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
           >
-            <option value={5}>5 Seconds</option>
+            <option value={5}>5 Seconds (VACE)</option>
             <option value={6}>6 Seconds</option>
             <option value={8}>8 Seconds</option>
           </select>
@@ -233,20 +233,19 @@ export const LeftControlPanel = ({ isGenerating, setIsGenerating, onError }) => 
             disabled={isGenerating}
             className="h-9 px-2 text-xs font-bold bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
           >
+            <option value="480p">480p (Wan 1.3B)</option>
             <option value="720p">720p HD</option>
-            <option value="480p">480p SD</option>
-            <option value="1080p">1080p FHD</option>
           </select>
         </div>
       </div>
 
-      {/* 5. Generation Cost Estimate & Main Action Button */}
+      {/* 5. Generation Cost & Action Button */}
       <div className="flex flex-col gap-3 pt-2 border-t border-border">
         <div className="flex items-center justify-between text-xs text-text-muted">
           <span className="flex items-center gap-1 font-medium">
-            <Coins className="w-4 h-4 text-accent" /> Estimated Generation Cost:
+            <Cpu className="w-4 h-4 text-accent" /> Wan 2.1 GPU Compute Cost:
           </span>
-          <span className="font-extrabold text-accent text-sm">$0.15 USD</span>
+          <span className="font-extrabold text-emerald-500 text-sm">$0.05 / generation</span>
         </div>
 
         <Button
@@ -259,7 +258,7 @@ export const LeftControlPanel = ({ isGenerating, setIsGenerating, onError }) => 
           icon={Sparkles}
           className="font-black text-sm uppercase tracking-wider shadow-md"
         >
-          {isGenerating ? 'Generating with xAI...' : 'GENERATE REEL'}
+          {isGenerating ? 'Generating with Wan 2.1...' : 'GENERATE WAN 2.1 REEL'}
         </Button>
       </div>
     </div>

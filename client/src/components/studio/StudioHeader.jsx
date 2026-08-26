@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Wand2, History, LayoutTemplate, Upload, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Sparkles, Wand2, History, LayoutTemplate, Upload, Cpu, ShieldCheck } from 'lucide-react';
 import Button from '../ui/Button.jsx';
 import Badge from '../ui/Badge.jsx';
 import useAIStudioStore from '../../store/useAIStudioStore.js';
@@ -10,7 +10,7 @@ export const StudioHeader = () => {
   const { activeTab, setActiveTab } = useAIStudioStore();
 
   const tabs = [
-    { id: 'AI GENERATE', label: 'AI Generate', icon: Sparkles },
+    { id: 'AI GENERATE', label: 'Wan 2.1 Generate', icon: Sparkles },
     { id: 'UPLOAD', label: 'Upload Video', icon: Upload },
     { id: 'MY GENERATIONS', label: 'My Generations', icon: History },
     { id: 'TEMPLATES', label: 'Templates', icon: LayoutTemplate },
@@ -35,12 +35,12 @@ export const StudioHeader = () => {
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-base tracking-tight text-white leading-none">
-                AI REEL STUDIO
+                SHOPSPHERE AI STUDIO
               </span>
-              <Badge variant="deal" size="sm">GROK VIDEO 1.5</Badge>
+              <Badge variant="deal" size="sm">WAN 2.1 VACE 1.3B</Badge>
             </div>
             <span className="text-[10px] text-gray-400 font-medium">
-              Social-Commerce Promotional Video Generator
+              Open-Weight Cloud GPU E-Commerce Video Generator
             </span>
           </div>
         </div>
@@ -68,11 +68,11 @@ export const StudioHeader = () => {
         })}
       </nav>
 
-      {/* RIGHT: Free Tier Usage Protection Badge */}
+      {/* RIGHT: Cloud GPU Status & Protection Badge */}
       <div className="flex items-center gap-3">
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-xs font-bold text-emerald-400">
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>Free Usage Cap Active (5/day max)</span>
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-950/80 border border-purple-500/40 text-xs font-bold text-purple-300">
+          <Cpu className="w-4 h-4 text-accent" />
+          <span>Wan2.1 VACE Cloud GPU Active</span>
         </div>
         <Button
           size="sm"

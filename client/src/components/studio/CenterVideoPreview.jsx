@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, RotateCcw, Check, Wand2, Download, AlertTriangle, ShieldCheck, ExternalLink } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, RotateCcw, Check, Wand2, Download, AlertTriangle, ShieldCheck, ExternalLink, Cpu } from 'lucide-react';
 import Button from '../ui/Button.jsx';
 import Badge from '../ui/Badge.jsx';
 import useAIStudioStore from '../../store/useAIStudioStore.js';
@@ -32,8 +32,8 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
 
   useEffect(() => {
     if (jobData) {
-      if (jobData.xaiRequestId) {
-        setXaiRequestId(jobData.xaiRequestId);
+      if (jobData.xaiRequestId || jobData.jobId) {
+        setXaiRequestId(jobData.xaiRequestId || jobData.jobId);
       }
 
       if (jobData.status === 'COMPLETED' && (jobData.videoUrl || jobData.outputVideoUrl)) {
@@ -43,7 +43,7 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
         setLastError(null);
       } else if (['FAILED', 'EXPIRED', 'CANCELLED'].includes(jobData.status)) {
         setIsGenerating(false);
-        setLastError(jobData.error || jobData.errorMessage || `xAI generation ${jobData.status.toLowerCase()}`);
+        setLastError(jobData.error || jobData.errorMessage || `Wan 2.1 generation ${jobData.status.toLowerCase()}`);
       }
     }
   }, [jobData, setCurrentVideoUrl, setIsGenerating, setXaiRequestId, setLastError]);
@@ -84,16 +84,16 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
   };
 
   const currentStatusMsg = () => {
-    if (!jobData) return 'Submitting request to xAI API...';
-    if (jobData.status === 'QUEUED') return 'Queued in xAI processing pipeline...';
-    if (jobData.status === 'GENERATING') return 'Generating video with Grok Imagine...';
-    if (jobData.status === 'PROCESSING') return 'Finalizing video output & MP4 stream...';
+    if (!jobData) return 'Submitting request to Wan 2.1 GPU pipeline...';
+    if (jobData.status === 'QUEUED') return 'Queued in RunPod GPU worker pool...';
+    if (jobData.status === 'GENERATING') return 'Rendering video with Wan 2.1 VACE 1.3B...';
+    if (jobData.status === 'PROCESSING') return 'Finalizing MP4 video & uploading to CDN...';
     if (jobData.status === 'COMPLETED') return 'Video Ready!';
-    if (jobData.status === 'FAILED') return jobData.error || 'Generation failed on provider side';
-    return 'Processing AI Reel...';
+    if (jobData.status === 'FAILED') return jobData.error || 'Generation failed on GPU worker side';
+    return 'Processing Wan 2.1 Reel...';
   };
 
-  const activeXaiRequestId = xaiRequestId || jobData?.xaiRequestId || jobData?.requestId || null;
+  const activeJobId = xaiRequestId || jobData?.xaiRequestId || jobData?.jobId || null;
 
   return (
     <div className="flex flex-col items-center justify-center p-4 bg-gray-950 border border-gray-800 rounded-2xl shadow-xl min-h-[550px] relative overflow-hidden select-none">
@@ -110,33 +110,33 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
             </div>
 
             <div className="space-y-2 max-w-xs">
-              <Badge variant="prime" size="sm">xAI Grok Imagine Video 1.5</Badge>
+              <Badge variant="prime" size="sm">Wan 2.1 VACE 1.3B</Badge>
               <h3 className="text-base font-bold text-white leading-tight">
                 {currentStatusMsg()}
               </h3>
               <p className="text-xs text-gray-400">
-                Official xAI API generation in progress. Rendering 9:16 vertical commercial frames...
+                Open-weight Wan 2.1 VACE inference in progress. Rendering 9:16 vertical commercial frames...
               </p>
             </div>
 
             {/* Proof Metadata Pill during generation */}
-            {activeXaiRequestId && (
+            {activeJobId && (
               <div className="p-2 rounded-lg bg-gray-950 border border-gray-800 text-[10px] font-mono text-gray-400 max-w-xs truncate">
-                xAI Request ID: <span className="text-accent">{activeXaiRequestId}</span>
+                Wan 2.1 Job ID: <span className="text-accent">{activeJobId}</span>
               </div>
             )}
           </div>
         ) : lastError ? (
-          /* Detailed Real Error Screen (Requirement Step 14) */
+          /* Detailed Error Screen */
           <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gray-900 text-red-400 space-y-4 overflow-y-auto">
             <div className="w-14 h-14 rounded-full bg-red-950/60 border border-red-800 flex items-center justify-center text-red-400 shrink-0">
               <AlertTriangle className="w-7 h-7" />
             </div>
             
             <div className="space-y-2 max-w-xs">
-              <Badge variant="danger" size="sm">xAI GENERATION ERROR</Badge>
+              <Badge variant="danger" size="sm">WAN 2.1 GENERATION ERROR</Badge>
               <h4 className="text-xs font-mono font-bold text-red-300 uppercase tracking-wider">
-                Provider Diagnostic Response
+                GPU Worker Diagnostic Response
               </h4>
               <div className="p-3 rounded-xl bg-gray-950 border border-red-900/60 text-left space-y-1">
                 <p className="text-xs font-mono font-medium text-red-200 break-words leading-relaxed">
@@ -147,9 +147,9 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
 
             <div className="p-2.5 rounded-lg bg-gray-950/80 border border-gray-800 text-[10px] font-mono text-gray-400 text-left w-full max-w-xs space-y-0.5">
               <div className="text-gray-300 font-bold">Request Diagnostic Context:</div>
-              <div>• Model: grok-imagine-video-1.5</div>
+              <div>• Model: Wan2.1-VACE-1.3B</div>
               <div>• Specs: {duration}s | {aspectRatio} | {resolution}</div>
-              <div>• Endpoint: https://api.x.ai/v1/videos/generations</div>
+              <div>• Pipeline: RunPod Serverless GPU</div>
             </div>
 
             <Button
@@ -183,7 +183,7 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
             <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 p-4 flex flex-col justify-between pointer-events-none">
               {/* Top Reel Badge & Mute Toggle */}
               <div className="flex items-center justify-between text-white pointer-events-auto z-10">
-                <Badge variant="deal" size="sm" className="shadow-md">AI REEL PREVIEW</Badge>
+                <Badge variant="deal" size="sm" className="shadow-md">WAN 2.1 REEL PREVIEW</Badge>
                 <button
                   type="button"
                   onClick={(e) => {
@@ -240,31 +240,31 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
               <Wand2 className="w-8 h-8" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-sm font-bold text-white">Ready for AI Reel Generation</h3>
+              <h3 className="text-sm font-bold text-white">Ready for Wan 2.1 AI Generation</h3>
               <p className="text-xs text-gray-400 max-w-xs">
-                Enter a prompt and click "GENERATE REEL" to invoke xAI Grok Imagine Video 1.5.
+                Enter a prompt and click "GENERATE WAN 2.1 REEL" to run the Wan 2.1 VACE 1.3B Cloud GPU pipeline.
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Proof Metadata Display Box (Requirement Step 14) */}
+      {/* Proof Metadata Display Box */}
       {currentVideoUrl && (
         <div className="mt-3 w-full max-w-[350px] p-2.5 rounded-xl bg-gray-900 border border-gray-800 text-[11px] font-mono text-gray-300 space-y-1">
           <div className="flex items-center justify-between text-accent font-bold">
             <span className="flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> xAI Official Output
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Wan 2.1 VACE Output
             </span>
-            <span>grok-imagine-video-1.5</span>
+            <span>Wan2.1-VACE-1.3B</span>
           </div>
-          {activeXaiRequestId && (
+          {activeJobId && (
             <div className="truncate text-gray-400">
-              xAI Request ID: <span className="text-white font-bold">{activeXaiRequestId}</span>
+              Job ID: <span className="text-white font-bold">{activeJobId}</span>
             </div>
           )}
           <div className="truncate text-gray-400">
-            Video URL: <a href={currentVideoUrl} target="_blank" rel="noreferrer" className="text-accent underline inline-flex items-center gap-0.5">{currentVideoUrl.substring(0, 32)}... <ExternalLink className="w-3 h-3" /></a>
+            Video CDN URL: <a href={currentVideoUrl} target="_blank" rel="noreferrer" className="text-accent underline inline-flex items-center gap-0.5">{currentVideoUrl.substring(0, 32)}... <ExternalLink className="w-3 h-3" /></a>
           </div>
         </div>
       )}
@@ -292,7 +292,7 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
             Regenerate
           </Button>
 
-          <a href={currentVideoUrl} download="shopsphere-grok-reel.mp4" target="_blank" rel="noreferrer">
+          <a href={currentVideoUrl} download="shopsphere-wan21-reel.mp4" target="_blank" rel="noreferrer">
             <Button
               variant="ghost"
               size="md"
