@@ -1,0 +1,17 @@
+torch==2.5.1
+torchvision==0.20.1
+transformers>=4.45.0
+diffusers>=0.31.0
+accelerate>=0.34.0
+safetensors>=0.4.5
+fastapi>=0.115.0
+uvicorn>=0.30.0
+pydantic>=2.9.0
+pillow>=10.4.0
+imageio>=2.35.0
+imageio-ffmpeg>=0.5.1
+huggingface_hub>=0.25.0
+runpod>=1.7.0
+ftfy>=6.2.0
+sentencepiece>=0.2.0
+boto3>=1.35.0

@@ -1,6 +1,8 @@
 import AIGenerationJob from '../../models/AIGenerationJob.js';
 import XAIProvider from './XAIProvider.js';
+import Wan21Provider from './wan/Wan21Provider.js';
 import MockVideoGenerationProvider from './MockVideoGenerationProvider.js';
+import buildProductReelPrompt from './promptBuilder.js';
 import { Product } from '../../models/Product.js';
 import { XAI_VIDEO_PRICING, SUPPORTED_ASPECT_RATIOS, SUPPORTED_RESOLUTIONS, SUPPORTED_DURATIONS } from './xaiTypes.js';
 import { AIVideoError, ERROR_CODES } from './xaiErrors.js';
@@ -8,29 +10,39 @@ import { AIVideoError, ERROR_CODES } from './xaiErrors.js';
 class AIVideoService {
   constructor() {
     this.xaiProvider = new XAIProvider();
+    this.wan21Provider = new Wan21Provider();
     this.mockProvider = new MockVideoGenerationProvider();
   }
 
   getProvider() {
-    const configuredProvider = (process.env.VIDEO_PROVIDER || 'xai').toLowerCase();
+    const configuredProvider = (process.env.AI_VIDEO_PROVIDER || process.env.VIDEO_PROVIDER || 'wan21').toLowerCase();
+
+    if (configuredProvider === 'wan21' || configuredProvider === 'wan') {
+      return this.wan21Provider;
+    }
+
+    if (configuredProvider === 'xai') {
+      return this.xaiProvider;
+    }
 
     if (configuredProvider === 'mock') {
       if (process.env.NODE_ENV === 'production') {
         throw new AIVideoError(
           'INVALID_CONFIGURATION',
-          'Production environment cannot use mock video generation provider. Set VIDEO_PROVIDER=xai in environment.',
+          'Production environment cannot use mock video generation provider. Set AI_VIDEO_PROVIDER=wan21 in environment.',
           500
         );
       }
       return this.mockProvider;
     }
 
-    return this.xaiProvider;
+    return this.wan21Provider;
   }
 
-  calculateEstimatedCost(duration = 5, resolution = '720p', model = 'grok-imagine-video-1.5') {
+  calculateEstimatedCost(duration = 5, resolution = '480p', model = 'Wan2.1-VACE-1.3B') {
+    if (model.startsWith('Wan2.1')) return 0.05;
     const modelPricing = XAI_VIDEO_PRICING[model] || XAI_VIDEO_PRICING['grok-imagine-video-1.5'];
-    const resPricing = modelPricing[resolution] || modelPricing['720p'];
+    const resPricing = modelPricing[resolution] || modelPricing['720p'] || {};
     return resPricing[duration] || 0.15;
   }
 
@@ -41,18 +53,15 @@ class AIVideoService {
 
   constructProductAwarePrompt(rawPrompt, product) {
     const cleanPrompt = this.sanitizePrompt(rawPrompt);
-
-    const basePrompt = 'Create a premium vertical social-commerce product advertisement featuring the provided product image. Preserve the product\'s visual identity and important physical characteristics. Place the product in a visually appropriate environment. Use smooth cinematic camera movement, realistic lighting, detailed materials, professional advertising composition, and a strong hero shot at the end. Do not add fake specifications, prices, logos, labels, or text that were not provided.';
-
-    if (!product) return `${basePrompt} ${cleanPrompt}`;
-
-    const brand = product.brand ? `${product.brand} ` : '';
-    const title = product.title ? product.title.trim() : 'item';
-
-    return `${basePrompt} Product details: ${brand}${title}. ${cleanPrompt}`;
+    return buildProductReelPrompt({
+      productName: product?.title,
+      brand: product?.brand,
+      category: product?.category,
+      creatorPrompt: cleanPrompt,
+    });
   }
 
-  async generateVideoJob({ userId, creatorId, productId, rawPrompt, inputImageUrl, duration = 5, aspectRatio = '9:16', resolution = '720p' }) {
+  async generateVideoJob({ userId, creatorId, productId, rawPrompt, inputImageUrl, duration = 5, aspectRatio = '9:16', resolution = '480p' }) {
     if (!userId || !creatorId) {
       throw new AIVideoError(ERROR_CODES.UNAUTHORIZED, 'User authentication required for AI generation');
     }
@@ -92,13 +101,13 @@ class AIVideoService {
           finalInputImageUrl = productObj.image;
         }
       } catch {
-        // If not found in DB, check fallback
+        // Fallback if ID format differs
       }
     }
 
     const finalPrompt = this.constructProductAwarePrompt(cleanPrompt, productObj);
     const provider = this.getProvider();
-    const model = process.env.XAI_VIDEO_MODEL || 'grok-imagine-video-1.5';
+    const model = finalInputImageUrl ? 'Wan2.1-VACE-1.3B' : 'Wan2.1-T2V-1.3B';
     const estimatedCost = this.calculateEstimatedCost(Number(duration), resolution, model);
 
     // Initial database job record
@@ -124,7 +133,7 @@ class AIVideoService {
     await job.save();
 
     try {
-      // Dispatch generation request to xAI API
+      // Dispatch generation request to Wan21Provider or configured provider
       const dispatchResult = await provider.generateVideo({
         prompt: finalPrompt,
         inputImageUrl: finalInputImageUrl,
@@ -211,7 +220,7 @@ class AIVideoService {
     const totalGenerations = jobs.length;
     const completedJobs = jobs.filter((j) => j.status === 'COMPLETED');
     const failedJobs = jobs.filter((j) => j.status === 'FAILED');
-    const totalSpend = jobs.reduce((sum, j) => sum + (j.actualCost || 0.15), 0);
+    const totalSpend = jobs.reduce((sum, j) => sum + (j.actualCost || 0.05), 0);
 
     return {
       totalGenerations,
