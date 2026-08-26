@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, RotateCcw, Check, Wand2, Download, AlertTriangle, ShieldCheck, ExternalLink, Cpu } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, RotateCcw, Check, Wand2, Download, AlertTriangle, ShieldCheck, ExternalLink } from 'lucide-react';
 import Button from '../ui/Button.jsx';
 import Badge from '../ui/Badge.jsx';
 import useAIStudioStore from '../../store/useAIStudioStore.js';
@@ -23,7 +23,7 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
   } = useAIStudioStore();
 
   const videoRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [progress, setProgress] = useState(0);
 
@@ -55,22 +55,33 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
     }
   }, [isError, queryError, setIsGenerating, setLastError]);
 
-  // Sync video play/pause
+  // Attempt autoplay when video URL changes
   useEffect(() => {
     if (videoRef.current && currentVideoUrl) {
       videoRef.current.currentTime = 0;
-      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => setIsPlaying(true))
+          .catch(() => {
+            // Autoplay blocked by browser policy; user click will play
+            setIsPlaying(false);
+          });
+      }
     }
   }, [currentVideoUrl]);
 
   const handleTogglePlay = (e) => {
     if (e) e.stopPropagation();
     if (videoRef.current) {
-      if (isPlaying) {
+      if (videoRef.current.paused) {
+        videoRef.current
+          .play()
+          .then(() => setIsPlaying(true))
+          .catch(() => setIsPlaying(false));
+      } else {
         videoRef.current.pause();
         setIsPlaying(false);
-      } else {
-        videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
       }
     }
   };
@@ -164,7 +175,7 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
           </div>
         ) : currentVideoUrl ? (
           /* Active Video Player Container */
-          <div className="relative w-full h-full bg-black group" onClick={handleTogglePlay}>
+          <div className="relative w-full h-full bg-black group cursor-pointer" onClick={handleTogglePlay}>
             <video
               ref={videoRef}
               src={currentVideoUrl}
@@ -197,17 +208,17 @@ export const CenterVideoPreview = ({ isGenerating, setIsGenerating, onUseVideo, 
                 </button>
               </div>
 
-              {/* Center Play/Pause Trigger */}
+              {/* Center Play/Pause Overlay Trigger */}
               <div className="flex items-center justify-center pointer-events-auto z-10">
                 <button
                   type="button"
                   onClick={handleTogglePlay}
-                  className={`p-4 rounded-full bg-accent text-gray-950 shadow-2xl transition-all duration-200 ${
-                    isPlaying ? 'opacity-0 group-hover:opacity-100 hover:scale-110' : 'opacity-100 scale-110'
+                  className={`p-5 rounded-full bg-accent text-gray-950 shadow-2xl transition-all duration-200 ${
+                    isPlaying ? 'opacity-0 group-hover:opacity-100 hover:scale-110' : 'opacity-100 scale-125 ring-4 ring-accent/40'
                   }`}
                   aria-label="Play or Pause Video"
                 >
-                  {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 fill-current" />}
+                  {isPlaying ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 fill-current ml-0.5" />}
                 </button>
               </div>
 
