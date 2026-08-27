@@ -6,7 +6,14 @@ import AdminLayout from '../components/layouts/AdminLayout.jsx';
 
 import HomePage from '../pages/customer/HomePage.jsx';
 import ReelsPage from '../pages/customer/ReelsPage.jsx';
+import ProductsPage from '../pages/products/ProductsPage';
+import ProductDetailsPage from '../pages/products/ProductDetailsPage';
+
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage.jsx';
+import ProductList from '../pages/admin/products/ProductList';
+import ProductCreate from '../pages/admin/products/ProductCreate';
+import ProductEdit from '../pages/admin/products/ProductEdit';
+
 import AIStudioPage from '../pages/creator/AIStudioPage.jsx';
 import AdminAIPage from '../pages/admin/AdminAIPage.jsx';
 import PlaceholderPage from '../pages/common/PlaceholderPage.jsx';
@@ -22,11 +29,12 @@ export const AppRoutes = () => {
       <Route path="/" element={<CustomerLayout />}>
         <Route index element={<HomePage />} />
         <Route path="search" element={<PlaceholderPage title="Marketplace Search Results" dayPlanned="Day 5" />} />
-        <Route path="products" element={<PlaceholderPage title="Product Catalog Grid" dayPlanned="Day 4" />} />
-        <Route path="product/:productId" element={<PlaceholderPage title="Product Details Page" dayPlanned="Day 4" />} />
-        <Route path="category/:categoryId" element={<PlaceholderPage title="Category Filtered Catalog" dayPlanned="Day 4" />} />
-        <Route path="categories" element={<PlaceholderPage title="All Product Categories" dayPlanned="Day 4" />} />
-        <Route path="categories/:category" element={<PlaceholderPage title="Category Products" dayPlanned="Day 4" />} />
+        <Route path="products" element={<ProductsPage />} />
+        <Route path="products/:slug" element={<ProductDetailsPage />} />
+        <Route path="product/:productId" element={<ProductDetailsPage />} />
+        <Route path="category/:categoryId" element={<ProductsPage />} />
+        <Route path="categories" element={<ProductsPage />} />
+        <Route path="categories/:category" element={<ProductsPage />} />
         <Route path="deals" element={<PlaceholderPage title="Daily Flash Deals & Offers" dayPlanned="Day 4" />} />
         <Route path="reels" element={<ReelsPage />} />
         <Route path="reels/:reelId" element={<ReelsPage />} />
@@ -58,7 +66,9 @@ export const AppRoutes = () => {
       <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
         <Route index element={<AdminDashboardPage />} />
         <Route path="ai" element={<AdminAIPage />} />
-        <Route path="products" element={<PlaceholderPage title="Admin Product Catalog Management" dayPlanned="Day 17" />} />
+        <Route path="products" element={<ProductList />} />
+        <Route path="products/new" element={<ProductCreate />} />
+        <Route path="products/:id/edit" element={<ProductEdit />} />
         <Route path="categories" element={<PlaceholderPage title="Admin Category Hierarchy Manager" dayPlanned="Day 17" />} />
         <Route path="inventory" element={<PlaceholderPage title="Admin Warehouse & Inventory Control" dayPlanned="Day 17" />} />
         <Route path="orders" element={<PlaceholderPage title="Admin Order Fulfillment & Logistics" dayPlanned="Day 17" />} />
