@@ -5,6 +5,7 @@ import SecondaryNavigation from '../common/SecondaryNavigation.jsx';
 import Footer from '../common/Footer.jsx';
 import MobileNavigation from '../common/MobileNavigation.jsx';
 import Drawer from '../ui/Drawer.jsx';
+import CartDrawer from '../cart/CartDrawer.jsx';
 import { ShoppingBag, Clapperboard, Layers, Tag, Shield, Heart, User, LogOut } from 'lucide-react';
 
 export const CustomerLayout = () => {
@@ -28,6 +29,9 @@ export const CustomerLayout = () => {
 
       {/* Mobile Bottom Navigation */}
       <MobileNavigation />
+
+      {/* Cart Drawer */}
+      <CartDrawer />
 
       {/* Mobile Menu Drawer */}
       <Drawer

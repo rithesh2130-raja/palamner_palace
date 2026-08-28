@@ -22,6 +22,9 @@ import NotFoundPage from '../pages/customer/NotFoundPage.jsx';
 import { ProtectedRoute } from '../components/common/ProtectedRoute.jsx';
 import { AdminRoute, CreatorRoute } from '../components/common/RoleRoutes.jsx';
 
+import CartPage from '../pages/customer/CartPage.jsx';
+import WishlistPage from '../pages/customer/WishlistPage.jsx';
+
 export const AppRoutes = () => {
   return (
     <Routes>
@@ -38,13 +41,13 @@ export const AppRoutes = () => {
         <Route path="deals" element={<PlaceholderPage title="Daily Flash Deals & Offers" dayPlanned="Day 4" />} />
         <Route path="reels" element={<ReelsPage />} />
         <Route path="reels/:reelId" element={<ReelsPage />} />
-        <Route path="cart" element={<PlaceholderPage title="Shopping Cart Drawer & Page" dayPlanned="Day 6" />} />
+        <Route path="cart" element={<CartPage />} />
         <Route path="checkout" element={<PlaceholderPage title="Checkout & Payment Gateway" dayPlanned="Day 7" />} />
         <Route path="orders" element={<PlaceholderPage title="Customer Order History" dayPlanned="Day 8" />} />
         <Route path="orders/:orderId" element={<PlaceholderPage title="Order Tracking & Invoice" dayPlanned="Day 8" />} />
         <Route path="account" element={<PlaceholderPage title="Customer Account Settings" dayPlanned="Day 2" />} />
         <Route path="profile" element={<PlaceholderPage title="Customer Profile & Wishlist" dayPlanned="Day 2" />} />
-        <Route path="wishlist" element={<PlaceholderPage title="Customer Saved Wishlist" dayPlanned="Day 6" />} />
+        <Route path="wishlist" element={<WishlistPage />} />
         <Route path="creator/:username" element={<PlaceholderPage title="Public Creator Profile & Reels" dayPlanned="Day 10" />} />
         <Route path="login" element={<PlaceholderPage title="Customer Authentication Login" dayPlanned="Day 2" />} />
         <Route path="register" element={<PlaceholderPage title="Customer Registration Sign-Up" dayPlanned="Day 2" />} />

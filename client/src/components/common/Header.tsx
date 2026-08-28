@@ -3,14 +3,19 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
   ShoppingBag,
+  Heart,
   User,
   Film,
   LayoutDashboard,
   Sparkles,
 } from "lucide-react";
+import { useCart } from "../../context/CartContext.jsx";
+import { useWishlist } from "../../context/WishlistContext.jsx";
 
 export const Header: React.FC = () => {
   const navigate = useNavigate();
+  const { cartItemCount, openCart } = useCart();
+  const { wishlistCount } = useWishlist();
 
   return (
     <header className="sticky top-0 z-50 bg-[#1e293b]/95 backdrop-blur-md border-b border-slate-700/80 shadow-lg">
@@ -29,7 +34,7 @@ export const Header: React.FC = () => {
           </span>
         </Link>
 
-        {/* Global Search Bar Placeholder */}
+        {/* Global Search Bar */}
         <div className="flex-1 max-w-2xl hidden md:flex items-center relative">
           <input
             type="text"
@@ -50,6 +55,19 @@ export const Header: React.FC = () => {
           >
             <Film className="w-4 h-4" />
             <span>Reels</span>
+          </Link>
+
+          <Link
+            to="/wishlist"
+            className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg relative transition-all"
+            title="Wishlist"
+          >
+            <Heart className="w-5 h-5" />
+            {wishlistCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-950 font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                {wishlistCount}
+              </span>
+            )}
           </Link>
 
           <Link
@@ -75,14 +93,18 @@ export const Header: React.FC = () => {
             <User className="w-5 h-5" />
           </Link>
 
-          <Link
-            to="/cart"
+          <button
+            onClick={openCart}
             className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg relative transition-all"
-            title="Cart"
+            title="Open Cart"
           >
             <ShoppingBag className="w-5 h-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-amber-400 rounded-full"></span>
-          </Link>
+            {cartItemCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-950 font-extrabold text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                {cartItemCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
@@ -124,3 +146,5 @@ export const Header: React.FC = () => {
     </header>
   );
 };
+
+export default Header;

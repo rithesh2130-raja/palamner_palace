@@ -27,12 +27,8 @@ export const ProductDetailsPage: React.FC = () => {
   const { productId, slug } = useParams<{ productId?: string; slug?: string }>();
   const navigate = useNavigate();
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
-  const [quantity, setQuantity] = useState<number>(1);
-  const [activeTab, setActiveTab] = useState<'description' | 'specs' | 'reviews'>('description');
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState<boolean>(false);
+  const [isWishlisting, setIsWishlisting] = useState<boolean>(false);
 
   const { addToCart, cartItems } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
@@ -105,26 +101,50 @@ export const ProductDetailsPage: React.FC = () => {
     discountPercentage = Math.round(((compareAtPrice - price) / compareAtPrice) * 100);
   }
 
-  const handleAddToCart = () => {
-    if (addToCart) {
-      addToCart(product, quantity);
-      if (showToast) showToast(`Added ${quantity} x "${product.name}" to cart!`, 'success');
-    }
-  };
-
-  const handleBuyNow = () => {
-    if (addToCart) {
-      addToCart(product, quantity);
-    }
-    if (showToast) showToast(`Proceeding to checkout with "${product.name}"`, 'success');
-  };
-
-  const handleToggleWishlist = () => {
-    if (toggleWishlist) {
-      toggleWishlist(product);
-      if (showToast) {
-        showToast(isSaved ? 'Removed from wishlist' : 'Saved to wishlist! ❤️', isSaved ? 'info' : 'success');
+  const handleAddToCart = async () => {
+    if (isAdding) return;
+    setIsAdding(true);
+    try {
+      if (addToCart) {
+        await addToCart(product, quantity);
+        if (showToast) showToast(`Added ${quantity} x "${product.name}" to cart!`, 'success');
       }
+    } catch (err: any) {
+      if (showToast) showToast(err.message || 'Failed to add to cart', 'error');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (isAdding) return;
+    setIsAdding(true);
+    try {
+      if (addToCart) {
+        await addToCart(product, quantity);
+        navigate('/cart');
+      }
+    } catch (err: any) {
+      if (showToast) showToast(err.message || 'Failed to add to cart', 'error');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleToggleWishlist = async () => {
+    if (isWishlisting) return;
+    setIsWishlisting(true);
+    try {
+      if (toggleWishlist) {
+        await toggleWishlist(product);
+        if (showToast) {
+          showToast(isSaved ? 'Removed from wishlist' : 'Saved to wishlist! ❤️', isSaved ? 'info' : 'success');
+        }
+      }
+    } catch (err: any) {
+      if (showToast) showToast(err.message || 'Failed to update wishlist', 'error');
+    } finally {
+      setIsWishlisting(false);
     }
   };
 

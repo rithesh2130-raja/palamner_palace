@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, MapPin, ShoppingCart, User, Bell, Menu, Sun, Moon, ChevronDown, Sparkles } from 'lucide-react';
+import { Search, MapPin, ShoppingCart, Heart, User, Bell, Menu, Sun, Moon, ChevronDown, Sparkles } from 'lucide-react';
 import { IconButton } from '../ui/IconButton.jsx';
 import { Dropdown, DropdownItem } from '../ui/Overlays.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
+import { useCart } from '../../context/CartContext.jsx';
+import { useWishlist } from '../../context/WishlistContext.jsx';
 
-export const Header = ({ onOpenMobileMenu, cartCount = 2, notificationCount = 3 }) => {
+export const Header = ({ onOpenMobileMenu, notificationCount = 3 }) => {
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
+  const { cartItemCount, openCart } = useCart();
+  const { wishlistCount } = useWishlist();
+
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -99,6 +104,23 @@ export const Header = ({ onOpenMobileMenu, cartCount = 2, notificationCount = 3 
             {isDark ? <Sun className="w-5 h-5 text-accent" /> : <Moon className="w-5 h-5" />}
           </button>
 
+          {/* Wishlist Icon */}
+          <Link
+            to="/wishlist"
+            className="flex items-center gap-1.5 hover:bg-white/10 px-2.5 py-1.5 rounded transition-colors text-white font-bold"
+            title="My Saved Wishlist"
+          >
+            <div className="relative">
+              <Heart className="w-5 h-5 text-white" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-accent text-gray-950 font-extrabold text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                  {wishlistCount}
+                </span>
+              )}
+            </div>
+            <span className="hidden xl:inline text-xs">Wishlist</span>
+          </Link>
+
           {/* Account Dropdown */}
           <Dropdown
             trigger={
@@ -115,6 +137,7 @@ export const Header = ({ onOpenMobileMenu, cartCount = 2, notificationCount = 3 
             <DropdownItem onClick={() => navigate('/login')}>Sign In</DropdownItem>
             <DropdownItem onClick={() => navigate('/account')}>My Account</DropdownItem>
             <DropdownItem onClick={() => navigate('/orders')}>My Orders</DropdownItem>
+            <DropdownItem onClick={() => navigate('/wishlist')}>My Wishlist ({wishlistCount})</DropdownItem>
             <DropdownItem onClick={() => navigate('/creator/studio')}>Creator Studio</DropdownItem>
             <DropdownItem onClick={() => navigate('/admin')}>Admin Dashboard</DropdownItem>
           </Dropdown>
@@ -125,21 +148,22 @@ export const Header = ({ onOpenMobileMenu, cartCount = 2, notificationCount = 3 
             <span className="font-bold text-white">& Orders</span>
           </Link>
 
-          {/* Cart */}
-          <Link
-            to="/cart"
+          {/* Cart Drawer Trigger Button */}
+          <button
+            onClick={openCart}
             className="flex items-center gap-2 hover:bg-white/10 px-3 py-1.5 rounded transition-colors font-bold text-white"
+            title="Open Shopping Cart"
           >
             <div className="relative">
               <ShoppingCart className="w-6 h-6 text-white" />
-              {cartCount > 0 && (
+              {cartItemCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-accent text-gray-950 font-extrabold text-[11px] w-5 h-5 rounded-full flex items-center justify-center">
-                  {cartCount}
+                  {cartItemCount}
                 </span>
               )}
             </div>
             <span className="text-sm">Cart</span>
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -172,20 +196,22 @@ export const Header = ({ onOpenMobileMenu, cartCount = 2, notificationCount = 3 
             >
               {isDark ? <Sun className="w-5 h-5 text-accent" /> : <Moon className="w-5 h-5" />}
             </button>
-            <Link to="/notifications" className="relative p-2 text-white">
-              <Bell className="w-5 h-5" />
-              {notificationCount > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-accent" />
-              )}
-            </Link>
-            <Link to="/cart" className="relative p-2 text-white">
-              <ShoppingCart className="w-5 h-5" />
-              {cartCount > 0 && (
+            <Link to="/wishlist" className="relative p-2 text-white" title="Wishlist">
+              <Heart className="w-5 h-5" />
+              {wishlistCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-accent text-gray-950 font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
-                  {cartCount}
+                  {wishlistCount}
                 </span>
               )}
             </Link>
+            <button onClick={openCart} className="relative p-2 text-white" title="Cart">
+              <ShoppingCart className="w-5 h-5" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-accent text-gray-950 font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                  {cartItemCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 

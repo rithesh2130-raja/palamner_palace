@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Star, ShoppingBag, Check } from 'lucide-react';
+import { Heart, Star, ShoppingBag, Check, Loader2 } from 'lucide-react';
 import { Product } from '../../types/product';
 import { useCart } from '../../context/CartContext.jsx';
 import { useWishlist } from '../../context/WishlistContext.jsx';
@@ -15,6 +15,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, className = '
   const { addToCart, cartItems } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { showToast } = useToast();
+  const [isAdding, setIsAdding] = useState(false);
+  const [isWishlisting, setIsWishlisting] = useState(false);
 
   const id = product._id || product.id;
   const slug = product.slug || id;
@@ -33,27 +35,47 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, className = '
   const isSaved = isInWishlist ? isInWishlist(id) : false;
   const isInCart = cartItems ? cartItems.some((item: any) => (item.product._id || item.product.id) === id) : false;
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (addToCart) {
-      addToCart(product, 1);
-      if (showToast) showToast(`Added "${name}" to cart!`, 'success');
+    if (isAdding) return;
+
+    setIsAdding(true);
+    try {
+      if (addToCart) {
+        await addToCart(product, 1);
+        if (showToast) showToast(`Added "${name}" to cart!`, 'success');
+      }
+    } catch (err: any) {
+      if (showToast) {
+        showToast(err.message || 'Failed to add item to cart', 'error');
+      }
+    } finally {
+      setIsAdding(false);
     }
   };
 
-  const handleToggleWishlist = (e: React.MouseEvent) => {
+  const handleToggleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (toggleWishlist) {
-      toggleWishlist(product);
-      if (showToast) {
-        if (isSaved) {
-          showToast(`Removed from wishlist`, 'info');
-        } else {
-          showToast(`Added to wishlist! ❤️`, 'success');
+    if (isWishlisting) return;
+
+    setIsWishlisting(true);
+    try {
+      if (toggleWishlist) {
+        await toggleWishlist(product);
+        if (showToast) {
+          if (isSaved) {
+            showToast(`Removed from wishlist`, 'info');
+          } else {
+            showToast(`Added to wishlist! ❤️`, 'success');
+          }
         }
       }
+    } catch (err: any) {
+      if (showToast) showToast(err.message || 'Failed to update wishlist', 'error');
+    } finally {
+      setIsWishlisting(false);
     }
   };
 
@@ -79,6 +101,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, className = '
           {/* Wishlist Button */}
           <button
             onClick={handleToggleWishlist}
+            disabled={isWishlisting}
             aria-label={isSaved ? 'Remove from wishlist' : 'Add to wishlist'}
             className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-all ${
               isSaved
@@ -86,7 +109,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, className = '
                 : 'bg-surface/90 text-text-muted hover:text-brand-primary hover:bg-surface shadow-sm'
             }`}
           >
-            <Heart className={`w-4 h-4 ${isSaved ? 'fill-white' : ''}`} />
+            {isWishlisting ? (
+              <Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
+            ) : (
+              <Heart className={`w-4 h-4 ${isSaved ? 'fill-white' : ''}`} />
+            )}
           </button>
         </div>
 
@@ -122,13 +149,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, className = '
 
         <button
           onClick={handleAddToCart}
-          className={`w-full py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+          disabled={isAdding || product.stock <= 0}
+          className={`w-full py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-60 ${
             isInCart
               ? 'bg-emerald-600 text-white hover:bg-emerald-700'
               : 'bg-brand-primary hover:bg-brand-primary-hover text-white shadow-md hover:shadow-brand-primary/30'
           }`}
         >
-          {isInCart ? (
+          {isAdding ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
+              <span>Adding...</span>
+            </>
+          ) : isInCart ? (
             <>
               <Check className="w-4 h-4" />
               <span>In Cart (+1)</span>

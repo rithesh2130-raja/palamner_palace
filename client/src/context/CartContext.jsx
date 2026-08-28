@@ -1,63 +1,146 @@
-import React, { createContext, useContext, useState } from 'react';
-import { MOCK_PRODUCTS } from '../constants/mockProducts.js';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { cartService } from '../services/cartService';
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState([
-    { product: MOCK_PRODUCTS[0], quantity: 1 },
-    { product: MOCK_PRODUCTS[1], quantity: 2 }
-  ]);
+  const [cartData, setCartData] = useState({
+    items: [],
+    summary: {
+      itemCount: 0,
+      subtotal: 0,
+      discount: 0,
+      shipping: 0,
+      total: 0,
+    },
+  });
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
-  const addToCart = (product, quantity = 1) => {
-    setCartItems(prev => {
-      const existingIndex = prev.findIndex(item => item.product.id === product.id);
-      if (existingIndex > -1) {
-        const updated = [...prev];
-        updated[existingIndex].quantity += quantity;
-        return updated;
+  const fetchCart = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await cartService.getCart();
+      if (res && res.success && res.data) {
+        setCartData(res.data);
       }
-      return [...prev, { product, quantity }];
-    });
-  };
-
-  const removeFromCart = (productId) => {
-    setCartItems(prev => prev.filter(item => item.product.id !== productId));
-  };
-
-  const updateQuantity = (productId, quantity) => {
-    if (quantity <= 0) {
-      removeFromCart(productId);
-      return;
+    } catch (err) {
+      console.error('Error fetching cart:', err);
+      setError(err.message || 'Failed to load cart');
+    } finally {
+      setLoading(false);
     }
-    setCartItems(prev =>
-      prev.map(item =>
-        item.product.id === productId ? { ...item, quantity } : item
-      )
-    );
+  }, []);
+
+  useEffect(() => {
+    fetchCart();
+  }, [fetchCart]);
+
+  const openCart = () => setIsCartOpen(true);
+  const closeCart = () => setIsCartOpen(false);
+  const toggleCartDrawer = () => setIsCartOpen(prev => !prev);
+
+  const extractProductId = (productOrId) => {
+    if (!productOrId) return '';
+    if (typeof productOrId === 'string') return productOrId;
+    return productOrId._id || productOrId.id || '';
   };
 
-  const clearCart = () => {
-    setCartItems([]);
+  const addToCart = async (productOrId, quantity = 1) => {
+    const productId = extractProductId(productOrId);
+    if (!productId) return null;
+
+    setActionLoading(true);
+    setError(null);
+    try {
+      const res = await cartService.addToCart(productId, quantity);
+      if (res && res.success && res.data) {
+        setCartData(res.data);
+        return res.data;
+      }
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const cartSubtotal = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  );
+  const updateQuantity = async (productOrId, quantity) => {
+    const productId = extractProductId(productOrId);
+    if (!productId) return null;
 
-  const cartItemCount = cartItems.reduce(
-    (sum, item) => sum + item.quantity,
-    0
-  );
+    setActionLoading(true);
+    setError(null);
+    try {
+      const res = await cartService.updateCartItem(productId, quantity);
+      if (res && res.success && res.data) {
+        setCartData(res.data);
+        return res.data;
+      }
+    } catch (err) {
+      console.error('Error updating cart quantity:', err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
-  const deliveryFee = cartSubtotal > 999 || cartSubtotal === 0 ? 0 : 79;
-  const cartTotal = cartSubtotal + deliveryFee;
+  const removeFromCart = async (productOrId) => {
+    const productId = extractProductId(productOrId);
+    if (!productId) return null;
+
+    setActionLoading(true);
+    setError(null);
+    try {
+      const res = await cartService.removeCartItem(productId);
+      if (res && res.success && res.data) {
+        setCartData(res.data);
+        return res.data;
+      }
+    } catch (err) {
+      console.error('Error removing cart item:', err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const clearCart = async () => {
+    setActionLoading(true);
+    setError(null);
+    try {
+      const res = await cartService.clearCart();
+      if (res && res.success && res.data) {
+        setCartData(res.data);
+        return res.data;
+      }
+    } catch (err) {
+      console.error('Error clearing cart:', err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const cartItems = cartData.items || [];
+  const cartSubtotal = cartData.summary?.subtotal || 0;
+  const cartTotal = cartData.summary?.total || 0;
+  const deliveryFee = cartData.summary?.shipping || 0;
+  const cartItemCount = cartData.summary?.itemCount || 0;
 
   return (
     <CartContext.Provider
       value={{
         cartItems,
+        cartSummary: cartData.summary,
         addToCart,
         removeFromCart,
         updateQuantity,
@@ -65,7 +148,15 @@ export const CartProvider = ({ children }) => {
         cartSubtotal,
         cartTotal,
         cartItemCount,
-        deliveryFee
+        deliveryFee,
+        loading,
+        actionLoading,
+        error,
+        refetchCart: fetchCart,
+        isCartOpen,
+        openCart,
+        closeCart,
+        toggleCartDrawer,
       }}
     >
       {children}
@@ -80,3 +171,5 @@ export const useCart = () => {
   }
   return context;
 };
+
+export default CartContext;

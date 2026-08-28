@@ -62,6 +62,49 @@ class ApiClient {
 
     return response.json();
   }
+
+  async patch(path, body, options) {
+    const url = this.buildUrl(path, options?.params);
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+      body: JSON.stringify(body),
+      ...options,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const err = new Error(errorData.message || errorData.error?.message || `API Request Failed with status ${response.status}`);
+      err.code = errorData.code || errorData.error?.code;
+      throw err;
+    }
+
+    return response.json();
+  }
+
+  async delete(path, options) {
+    const url = this.buildUrl(path, options?.params);
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const err = new Error(errorData.message || errorData.error?.message || `API Request Failed with status ${response.status}`);
+      err.code = errorData.code || errorData.error?.code;
+      throw err;
+    }
+
+    return response.json();
+  }
 }
 
 export const apiClient = new ApiClient(env.VITE_API_URL || 'http://localhost:5000/api/v1');

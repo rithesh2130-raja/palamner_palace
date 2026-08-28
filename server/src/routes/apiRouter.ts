@@ -1,18 +1,16 @@
 import { Router } from "express";
 import { getHealthStatus } from "../controllers/healthController.js";
+import productRoutes from "./productRoutes.js";
+import cartRoutes from "./cartRoutes.js";
+import wishlistRoutes from "./wishlistRoutes.js";
 
 const apiRouter = Router();
 
 // Health Check Route
 apiRouter.get("/health", getHealthStatus);
 
-// Future API Domain Routes (Placeholders for Day 2+)
-// apiRouter.use('/auth', authRouter);
-// apiRouter.use('/users', userRouter);
-// apiRouter.use('/products', productRouter);
-// apiRouter.use('/reels', reelRouter);
-// apiRouter.use('/orders', orderRouter);
-// apiRouter.use('/creators', creatorRouter);
-// apiRouter.use('/admin', adminRouter);
+apiRouter.use("/products", productRoutes);
+apiRouter.use("/cart", cartRoutes);
+apiRouter.use("/wishlist", wishlistRoutes);
 
 export default apiRouter;
