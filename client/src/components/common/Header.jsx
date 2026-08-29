@@ -1,29 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, MapPin, ShoppingCart, Heart, User, Bell, Menu, Sun, Moon, ChevronDown, Sparkles } from 'lucide-react';
+import { MapPin, ShoppingCart, Heart, Menu, Sun, Moon, ChevronDown, Sparkles } from 'lucide-react';
 import { IconButton } from '../ui/IconButton.jsx';
 import { Dropdown, DropdownItem } from '../ui/Overlays.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 import { useWishlist } from '../../context/WishlistContext.jsx';
+import { SearchBar } from '../search/SearchBar.jsx';
 
-export const Header = ({ onOpenMobileMenu, notificationCount = 3 }) => {
+export const Header = ({ onOpenMobileMenu }) => {
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
   const { cartItemCount, openCart } = useCart();
   const { wishlistCount } = useWishlist();
-
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const categories = ['All', 'Electronics', 'Fashion', 'Home', 'Gaming', 'Beauty'];
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}&cat=${selectedCategory}`);
-    }
-  };
 
   return (
     <header className="sticky top-0 z-header bg-[#131A22] text-white shadow-md">
@@ -58,39 +47,8 @@ export const Header = ({ onOpenMobileMenu, notificationCount = 3 }) => {
           </button>
         </div>
 
-        {/* CENTER: Main Search Bar */}
-        <form onSubmit={handleSearchSubmit} className="flex-1 max-w-2xl flex items-center h-[42px] rounded-md overflow-hidden bg-white text-gray-900 border border-transparent focus-within:ring-2 focus-within:ring-accent">
-          {/* Category Dropdown */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="h-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold px-3 border-r border-gray-300 focus:outline-none cursor-pointer"
-          >
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-
-          {/* Search Input */}
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search products, reels, creators..."
-            className="w-full h-full px-3 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none bg-white"
-          />
-
-          {/* Search Button */}
-          <button
-            type="submit"
-            aria-label="Search"
-            className="h-full px-5 bg-accent hover:bg-accent-hover text-gray-950 flex items-center justify-center transition-colors font-bold shrink-0"
-          >
-            <Search className="w-5 h-5" />
-          </button>
-        </form>
+        {/* CENTER: Main Search Bar with Auto-complete Suggestions */}
+        <SearchBar className="max-w-2xl" placeholder="Search products, brands and categories..." />
 
         {/* RIGHT: Actions */}
         <div className="flex items-center gap-4 shrink-0 text-xs font-medium">
@@ -215,24 +173,9 @@ export const Header = ({ onOpenMobileMenu, notificationCount = 3 }) => {
           </div>
         </div>
 
-        {/* Sticky Mobile Search Bar */}
+        {/* Mobile Search Bar */}
         <div className="px-3 pb-3">
-          <form onSubmit={handleSearchSubmit} className="flex items-center h-10 rounded-md overflow-hidden bg-white text-gray-900">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products, reels, creators..."
-              className="w-full h-full px-3 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="h-full px-4 bg-accent text-gray-950 flex items-center justify-center font-bold"
-              aria-label="Search"
-            >
-              <Search className="w-4 h-4" />
-            </button>
-          </form>
+          <SearchBar placeholder="Search products, brands and categories..." />
         </div>
       </div>
     </header>

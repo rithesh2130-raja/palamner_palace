@@ -7,6 +7,7 @@ import AdminLayout from '../components/layouts/AdminLayout.jsx';
 import HomePage from '../pages/customer/HomePage.jsx';
 import ReelsPage from '../pages/customer/ReelsPage.jsx';
 import ProductsPage from '../pages/products/ProductsPage';
+import CategoryPage from '../pages/category/CategoryPage.jsx';
 import ProductDetailsPage from '../pages/products/ProductDetailsPage';
 
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage.jsx';
@@ -31,13 +32,13 @@ export const AppRoutes = () => {
       {/* Customer Application Shell Routes */}
       <Route path="/" element={<CustomerLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="search" element={<PlaceholderPage title="Marketplace Search Results" dayPlanned="Day 5" />} />
+        <Route path="search" element={<ProductsPage />} />
         <Route path="products" element={<ProductsPage />} />
         <Route path="products/:slug" element={<ProductDetailsPage />} />
         <Route path="product/:productId" element={<ProductDetailsPage />} />
-        <Route path="category/:categoryId" element={<ProductsPage />} />
+        <Route path="category/:category" element={<CategoryPage />} />
         <Route path="categories" element={<ProductsPage />} />
-        <Route path="categories/:category" element={<ProductsPage />} />
+        <Route path="categories/:category" element={<CategoryPage />} />
         <Route path="deals" element={<PlaceholderPage title="Daily Flash Deals & Offers" dayPlanned="Day 4" />} />
         <Route path="reels" element={<ReelsPage />} />
         <Route path="reels/:reelId" element={<ReelsPage />} />

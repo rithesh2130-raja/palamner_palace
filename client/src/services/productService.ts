@@ -1,5 +1,5 @@
 import { apiClient } from './api/apiClient';
-import { Product, ProductFilters, ProductsResponse, SingleProductResponse } from '../types/product';
+import { Product, ProductFilters, ProductsResponse, SingleProductResponse, SearchSuggestionsResponse } from '../types/product';
 
 export async function getProducts(params: ProductFilters = {}): Promise<ProductsResponse> {
   const queryParams: Record<string, string | number | boolean | undefined> = { ...params };
@@ -42,12 +42,20 @@ export async function deleteProduct(id: string): Promise<{ success: boolean; mes
   return response;
 }
 
+export async function getSearchSuggestions(q: string): Promise<SearchSuggestionsResponse> {
+  const response = await apiClient.get<SearchSuggestionsResponse>('/products/suggestions', {
+    params: { q },
+  });
+  return response;
+}
+
 export const productService = {
   getProducts,
   getProduct,
   getProductBySlug,
   getFeaturedProducts,
   getProductsByCategory,
+  getSearchSuggestions,
   createProduct,
   updateProduct,
   deleteProduct,

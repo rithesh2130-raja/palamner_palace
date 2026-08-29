@@ -1,10 +1,17 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
-import { CustomerLayout } from "../components/layouts/CustomerLayout";
-import { CreatorLayout } from "../components/layouts/CreatorLayout";
-import { AdminLayout } from "../components/layouts/AdminLayout";
-import { HomePage } from "../pages/customer/HomePage";
-import { PlaceholderPage } from "../pages/common/PlaceholderPage";
+import CustomerLayout from "../components/layouts/CustomerLayout.jsx";
+import CreatorLayout from "../components/layouts/CreatorLayout.jsx";
+import AdminLayout from "../components/layouts/AdminLayout.jsx";
+import HomePage from "../pages/customer/HomePage.jsx";
+import ProductsPage from "../pages/products/ProductsPage.jsx";
+import CategoryPage from "../pages/category/CategoryPage.jsx";
+import ProductDetailsPage from "../pages/products/ProductDetailsPage.jsx";
+import CartPage from "../pages/customer/CartPage.jsx";
+import WishlistPage from "../pages/customer/WishlistPage.jsx";
+import ReelsPage from "../pages/customer/ReelsPage.jsx";
+import PlaceholderPage from "../pages/common/PlaceholderPage.jsx";
+import NotFoundPage from "../pages/customer/NotFoundPage.jsx";
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -12,42 +19,13 @@ export const AppRoutes: React.FC = () => {
       {/* Customer Routes (CustomerLayout) */}
       <Route path="/" element={<CustomerLayout />}>
         <Route index element={<HomePage />} />
-        <Route
-          path="login"
-          element={
-            <PlaceholderPage title="Customer Sign In" dayPlanned="Day 2" />
-          }
-        />
-        <Route
-          path="register"
-          element={
-            <PlaceholderPage title="Account Registration" dayPlanned="Day 2" />
-          }
-        />
-        <Route
-          path="reels"
-          element={
-            <PlaceholderPage title="Video Reels Feed" dayPlanned="Day 11-12" />
-          }
-        />
-        <Route
-          path="search"
-          element={
-            <PlaceholderPage
-              title="Product & Reel Search Engine"
-              dayPlanned="Day 6"
-            />
-          }
-        />
-        <Route
-          path="product/:id"
-          element={
-            <PlaceholderPage
-              title="Product Details & Reels"
-              dayPlanned="Day 7"
-            />
-          }
-        />
+        <Route path="search" element={<ProductsPage />} />
+        <Route path="products" element={<ProductsPage />} />
+        <Route path="products/:slug" element={<ProductDetailsPage />} />
+        <Route path="product/:productId" element={<ProductDetailsPage />} />
+        <Route path="category/:category" element={<CategoryPage />} />
+        <Route path="categories" element={<ProductsPage />} />
+        <Route path="categories/:category" element={<CategoryPage />} />
         <Route
           path="cart"
           element={<PlaceholderPage title="Shopping Cart" dayPlanned="Day 8" />}

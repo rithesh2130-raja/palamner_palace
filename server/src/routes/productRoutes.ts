@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   getProducts,
+  getSearchSuggestions,
   getFeaturedProducts,
   getProductsByCategory,
   getProductBySlug,
@@ -13,6 +14,7 @@ import {
 const router = Router();
 
 router.get('/', getProducts);
+router.get('/suggestions', getSearchSuggestions);
 router.get('/featured', getFeaturedProducts);
 router.get('/category/:category', getProductsByCategory);
 router.get('/slug/:slug', getProductBySlug);

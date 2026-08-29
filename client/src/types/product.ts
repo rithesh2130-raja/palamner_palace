@@ -36,13 +36,17 @@ export interface ProductPagination {
 export interface ProductFilters {
   page?: number;
   limit?: number;
+  q?: string;
+  search?: string;
   category?: string;
   subcategory?: string;
+  brand?: string;
   minPrice?: number;
   maxPrice?: number;
-  sort?: 'price_asc' | 'price_desc' | 'rating' | 'newest' | string;
-  search?: string;
+  minRating?: number;
+  inStock?: boolean;
   isFeatured?: boolean;
+  sort?: 'relevance' | 'price_asc' | 'price_desc' | 'rating' | 'newest' | 'popular' | string;
 }
 
 export interface ProductsResponse {
@@ -58,4 +62,23 @@ export interface SingleProductResponse {
   success: boolean;
   data: Product;
   message?: string;
+}
+
+export interface SearchSuggestionsData {
+  query: string;
+  suggestions: string[];
+  products: Array<{
+    _id: string;
+    name: string;
+    slug: string;
+    price: number;
+    category: string;
+    image: string;
+  }>;
+  categories: string[];
+}
+
+export interface SearchSuggestionsResponse {
+  success: boolean;
+  data: SearchSuggestionsData;
 }

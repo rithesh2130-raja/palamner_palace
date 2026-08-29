@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   getProducts,
+  getSearchSuggestions,
   getFeaturedProducts,
   getProductsByCategory,
   getProductBySlug,
@@ -14,6 +15,9 @@ const router = Router();
 
 // GET /api/v1/products
 router.get('/', getProducts);
+
+// GET /api/v1/products/suggestions
+router.get('/suggestions', getSearchSuggestions);
 
 // GET /api/v1/products/featured
 router.get('/featured', getFeaturedProducts);

@@ -1,5 +1,6 @@
 import Product from '../models/Product.js';
 import { isDatabaseConnected } from '../config/database.js';
+import productSearchService from '../services/products/productSearchService.js';
 
 // Fallback seed data if MongoDB is unavailable in dev
 const FALLBACK_PRODUCTS = [
@@ -157,116 +158,30 @@ export const slugify = (text) => {
 
 /**
  * GET /api/v1/products
- * Supports page, limit, category, subcategory, minPrice, maxPrice, sort, search
+ * Supports q, category, subcategory, brand, minPrice, maxPrice, minRating, inStock, sort, page, limit
  */
 export const getProducts = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
-    const skip = (page - 1) * limit;
-
-    const { category, subcategory, minPrice, maxPrice, sort, search, isFeatured, filter } = req.query;
-
-    if (isDatabaseConnected()) {
-      const query = { isActive: true };
-
-      if (category) {
-        query.category = { $regex: new RegExp(`^${category}$`, 'i') };
-      }
-      if (subcategory) {
-        query.subcategory = { $regex: new RegExp(`^${subcategory}$`, 'i') };
-      }
-      if (isFeatured !== undefined) {
-        query.isFeatured = isFeatured === 'true';
-      }
-      if (filter === 'bestseller' || filter === 'bestsellers') {
-        query.reviewCount = { $gt: 0 };
-      }
-      if (minPrice || maxPrice) {
-        query.price = {};
-        if (minPrice) query.price.$gte = Number(minPrice);
-        if (maxPrice) query.price.$lte = Number(maxPrice);
-      }
-      if (search) {
-        const searchRegex = new RegExp(String(search), 'i');
-        query.$or = [
-          { name: searchRegex },
-          { brand: searchRegex },
-          { description: searchRegex },
-          { tags: searchRegex },
-        ];
-      }
-
-      // Sorting
-      let sortOptions = { createdAt: -1 };
-      if (sort === 'price_asc' || sort === 'price-low') sortOptions = { price: 1 };
-      else if (sort === 'price_desc' || sort === 'price-high') sortOptions = { price: -1 };
-      else if (sort === 'rating') sortOptions = { rating: -1 };
-      else if (sort === 'bestsellers' || sort === 'bestseller') sortOptions = { reviewCount: -1, rating: -1 };
-      else if (sort === 'newest' || sort === 'new') sortOptions = { createdAt: -1 };
-
-      const total = await Product.countDocuments(query);
-      const products = await Product.find(query).sort(sortOptions).skip(skip).limit(limit);
-
-      return res.status(200).json({
-        success: true,
-        data: {
-          products,
-          pagination: {
-            page,
-            limit,
-            total,
-            pages: Math.ceil(total / limit) || 1,
-          },
-        },
-      });
-    }
-
-    // Fallback in-memory logic
-    let filtered = [...FALLBACK_PRODUCTS].filter(p => p.isActive);
-    if (category) {
-      filtered = filtered.filter(p => p.category.toLowerCase() === String(category).toLowerCase());
-    }
-    if (subcategory) {
-      filtered = filtered.filter(p => p.subcategory?.toLowerCase() === String(subcategory).toLowerCase());
-    }
-    if (isFeatured !== undefined) {
-      filtered = filtered.filter(p => p.isFeatured === (isFeatured === 'true'));
-    }
-    if (minPrice) {
-      filtered = filtered.filter(p => p.price >= Number(minPrice));
-    }
-    if (maxPrice) {
-      filtered = filtered.filter(p => p.price <= Number(maxPrice));
-    }
-    if (search) {
-      const q = String(search).toLowerCase();
-      filtered = filtered.filter(
-        p =>
-          p.name.toLowerCase().includes(q) ||
-          (p.brand && p.brand.toLowerCase().includes(q)) ||
-          p.tags.some(t => t.toLowerCase().includes(q))
-      );
-    }
-
-    if (sort === 'price_asc') filtered.sort((a, b) => a.price - b.price);
-    else if (sort === 'price_desc') filtered.sort((a, b) => b.price - a.price);
-    else if (sort === 'rating') filtered.sort((a, b) => b.rating - a.rating);
-
-    const total = filtered.length;
-    const paginated = filtered.slice(skip, skip + limit);
-
+    const searchResult = await productSearchService.searchProducts(req.query);
     return res.status(200).json({
       success: true,
-      data: {
-        products: paginated,
-        pagination: {
-          page,
-          limit,
-          total,
-          pages: Math.ceil(total / limit) || 1,
-        },
-      },
+      data: searchResult,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/products/suggestions
+ */
+export const getSearchSuggestions = async (req, res, next) => {
+  try {
+    const q = req.query.q || req.query.search || '';
+    const result = await productSearchService.getSearchSuggestions(q);
+    return res.status(200).json({
+      success: true,
+      data: result,
     });
   } catch (error) {
     next(error);

@@ -96,5 +96,35 @@ const productSchema = new mongoose.Schema(
   }
 );
 
+// Weighted MongoDB Text Search Index
+productSchema.index(
+  {
+    name: 'text',
+    brand: 'text',
+    category: 'text',
+    subcategory: 'text',
+    tags: 'text',
+    description: 'text',
+  },
+  {
+    weights: {
+      name: 10,
+      brand: 8,
+      category: 5,
+      tags: 4,
+      subcategory: 3,
+      description: 1,
+    },
+    name: 'ProductTextSearchIndex',
+  }
+);
+
+// Sorting & Filtering Field Indexes
+productSchema.index({ price: 1 });
+productSchema.index({ rating: -1 });
+productSchema.index({ reviewCount: -1 });
+productSchema.index({ createdAt: -1 });
+productSchema.index({ isActive: 1, category: 1 });
+
 export const Product = mongoose.models.Product || mongoose.model('Product', productSchema);
 export default Product;
