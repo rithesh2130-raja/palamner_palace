@@ -6,6 +6,7 @@ import { Dropdown, DropdownItem } from '../ui/Overlays.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 import { useWishlist } from '../../context/WishlistContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { SearchBar } from '../search/SearchBar.jsx';
 
 export const Header = ({ onOpenMobileMenu }) => {
@@ -13,6 +14,7 @@ export const Header = ({ onOpenMobileMenu }) => {
   const { isDark, toggleTheme } = useTheme();
   const { cartItemCount, openCart } = useCart();
   const { wishlistCount } = useWishlist();
+  const { user, isAuthenticated, logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-header bg-[#131A22] text-white shadow-md">
@@ -82,9 +84,18 @@ export const Header = ({ onOpenMobileMenu }) => {
           {/* Account Dropdown */}
           <Dropdown
             trigger={
-              <button className="flex items-center gap-1 hover:bg-white/10 px-2.5 py-1.5 rounded transition-colors text-left">
+              <button className="flex items-center gap-1.5 hover:bg-white/10 px-2.5 py-1.5 rounded transition-colors text-left">
+                {isAuthenticated && user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-7 h-7 rounded-full object-cover border border-accent shrink-0"
+                  />
+                ) : null}
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-400 leading-none">Hello, Sign in</span>
+                  <span className="text-[10px] text-gray-400 leading-none">
+                    {isAuthenticated ? `Hi, ${user?.name?.split(' ')[0] || 'User'}` : 'Hello, Sign in'}
+                  </span>
                   <span className="font-bold text-white flex items-center gap-0.5">
                     Account & Lists <ChevronDown className="w-3 h-3 text-gray-400" />
                   </span>
@@ -92,12 +103,33 @@ export const Header = ({ onOpenMobileMenu }) => {
               </button>
             }
           >
-            <DropdownItem onClick={() => navigate('/login')}>Sign In</DropdownItem>
-            <DropdownItem onClick={() => navigate('/account')}>My Account</DropdownItem>
-            <DropdownItem onClick={() => navigate('/orders')}>My Orders</DropdownItem>
-            <DropdownItem onClick={() => navigate('/wishlist')}>My Wishlist ({wishlistCount})</DropdownItem>
-            <DropdownItem onClick={() => navigate('/creator/studio')}>Creator Studio</DropdownItem>
-            <DropdownItem onClick={() => navigate('/admin')}>Admin Dashboard</DropdownItem>
+            {!isAuthenticated ? (
+              <>
+                <DropdownItem onClick={() => navigate('/login')}>Sign In</DropdownItem>
+                <DropdownItem onClick={() => navigate('/register')}>Create Account</DropdownItem>
+              </>
+            ) : (
+              <>
+                <div className="px-4 py-2 border-b border-border text-xs">
+                  <p className="font-extrabold text-text-primary">{user?.name}</p>
+                  <p className="text-[10px] text-text-tertiary">{user?.email}</p>
+                </div>
+                <DropdownItem onClick={() => navigate('/account?tab=profile')}>My Profile</DropdownItem>
+                <DropdownItem onClick={() => navigate('/account?tab=addresses')}>My Addresses</DropdownItem>
+                <DropdownItem onClick={() => navigate('/orders')}>My Orders</DropdownItem>
+                <DropdownItem onClick={() => navigate('/wishlist')}>My Wishlist ({wishlistCount})</DropdownItem>
+                <DropdownItem onClick={() => navigate('/account?tab=security')}>Security Settings</DropdownItem>
+                {user?.role === 'creator' || user?.role === 'admin' ? (
+                  <DropdownItem onClick={() => navigate('/creator/studio')}>Creator Studio</DropdownItem>
+                ) : null}
+                {user?.role === 'admin' ? (
+                  <DropdownItem onClick={() => navigate('/admin')}>Admin Dashboard</DropdownItem>
+                ) : null}
+                <DropdownItem onClick={logout} className="text-red-500 font-bold border-t border-border">
+                  Sign Out
+                </DropdownItem>
+              </>
+            )}
           </Dropdown>
 
           {/* Orders */}

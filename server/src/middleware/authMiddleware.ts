@@ -10,7 +10,7 @@ export interface AuthenticatedRequest extends Request {
 
 export async function requireAuth(
   req: AuthenticatedRequest,
-  _res: Response,
+  res: Response,
   next: NextFunction
 ) {
   try {
@@ -22,42 +22,69 @@ export async function requireAuth(
       token = req.cookies.token;
     }
 
-    if (token) {
-      try {
-        const decoded: any = jwt.verify(token, env.JWT_ACCESS_SECRET || "shopsphere_jwt_secret_dev");
-        const user = await User.findById(decoded.id || decoded.userId);
-        if (user) {
-          req.user = user;
-          return next();
-        }
-      } catch (e) {
-        // Token verification failed, fallback to default demo user
-      }
-    }
-
-    if (req.headers["x-user-id"]) {
-      const user = await User.findById(req.headers["x-user-id"] as string);
-      if (user) {
-        req.user = user;
-        return next();
-      }
-    }
-
-    let demoUser = await User.findOne({ email: "rajesh.palamner@example.com" });
-    if (!demoUser) {
-      demoUser = await User.create({
-        name: "Rajesh Kumar",
-        email: "rajesh.palamner@example.com",
-        password: "hashedpassword123",
-        role: "customer",
-        pincode: "517408",
-        city: "Palamner, Andhra Pradesh",
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required. Please log in.",
+        },
       });
     }
 
-    req.user = demoUser;
-    return next();
+    try {
+      const secret = env.JWT_ACCESS_SECRET || "shopsphere_jwt_secret_dev";
+      const decoded: any = jwt.verify(token, secret);
+      const user = await User.findById(decoded.id || decoded.userId);
+
+      if (!user || user.isActive === false) {
+        return res.status(401).json({
+          success: false,
+          error: {
+            code: "UNAUTHORIZED",
+            message: "User session invalid or user account deactivated.",
+          },
+        });
+      }
+
+      req.user = user;
+      return next();
+    } catch (err) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Invalid or expired authentication token.",
+        },
+      });
+    }
   } catch (error) {
     return next(error);
   }
+}
+
+export function requireRole(...roles: string[]) {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+    }
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: "FORBIDDEN",
+          message: "Access denied. Insufficient permissions.",
+        },
+      });
+    }
+
+    return next();
+  };
 }

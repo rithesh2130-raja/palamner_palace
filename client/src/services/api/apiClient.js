@@ -20,12 +20,19 @@ class ApiClient {
     return url.toString();
   }
 
+  getAuthHeaders() {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('shopsphere_token') : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
   async get(path, options) {
     const url = this.buildUrl(path, options?.params);
     const response = await fetch(url, {
       method: 'GET',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...this.getAuthHeaders(),
         ...options?.headers,
       },
       ...options,
@@ -33,7 +40,9 @@ class ApiClient {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `API Request Failed with status ${response.status}`);
+      const err = new Error(errorData.message || errorData.error?.message || `API Request Failed with status ${response.status}`);
+      err.code = errorData.code || errorData.error?.code;
+      throw err;
     }
 
     return response.json();
@@ -43,13 +52,14 @@ class ApiClient {
     const url = this.buildUrl(path, options?.params);
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
 
-    const headers = { ...options?.headers };
+    const headers = { ...this.getAuthHeaders(), ...options?.headers };
     if (!isFormData) {
       headers['Content-Type'] = 'application/json';
     }
 
     const response = await fetch(url, {
       method: 'POST',
+      credentials: 'include',
       headers,
       body: isFormData ? body : JSON.stringify(body),
       ...options,
@@ -57,7 +67,9 @@ class ApiClient {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `API Request Failed with status ${response.status}`);
+      const err = new Error(errorData.message || errorData.error?.message || `API Request Failed with status ${response.status}`);
+      err.code = errorData.code || errorData.error?.code;
+      throw err;
     }
 
     return response.json();
@@ -67,8 +79,10 @@ class ApiClient {
     const url = this.buildUrl(path, options?.params);
     const response = await fetch(url, {
       method: 'PATCH',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...this.getAuthHeaders(),
         ...options?.headers,
       },
       body: JSON.stringify(body),
@@ -89,8 +103,10 @@ class ApiClient {
     const url = this.buildUrl(path, options?.params);
     const response = await fetch(url, {
       method: 'DELETE',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...this.getAuthHeaders(),
         ...options?.headers,
       },
       ...options,

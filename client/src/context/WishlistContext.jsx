@@ -20,8 +20,8 @@ export const WishlistProvider = ({ children }) => {
         setWishlistCount(res.data.count || 0);
       }
     } catch (err) {
-      console.error('Error fetching wishlist:', err);
-      setError(err.message || 'Failed to load wishlist');
+      setWishlistItems([]);
+      setWishlistCount(0);
     } finally {
       setLoading(false);
     }

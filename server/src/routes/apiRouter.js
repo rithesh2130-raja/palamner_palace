@@ -7,11 +7,19 @@ import advertisementRoutes from './advertisementRoutes.js';
 import aiVideoRoutes from './aiVideoRoutes.js';
 import cartRoutes from './cartRoutes.js';
 import wishlistRoutes from './wishlistRoutes.js';
+import authRoutes from './authRoutes.js';
+import userRoutes from './userRoutes.js';
+import addressRoutes from './addressRoutes.js';
 
 const apiRouter = Router();
 
 // GET /api/v1/health
 apiRouter.get('/health', getHealthStatus);
+
+// Auth, User Profile & Addresses Endpoints
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/users', userRoutes);
+apiRouter.use('/addresses', addressRoutes);
 
 // Resource Endpoints
 apiRouter.use('/products', productRoutes);

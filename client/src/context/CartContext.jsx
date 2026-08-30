@@ -28,8 +28,7 @@ export const CartProvider = ({ children }) => {
         setCartData(res.data);
       }
     } catch (err) {
-      console.error('Error fetching cart:', err);
-      setError(err.message || 'Failed to load cart');
+      setCartData({ items: [], summary: { itemCount: 0, subtotal: 0, discount: 0, shipping: 0, total: 0 } });
     } finally {
       setLoading(false);
     }
