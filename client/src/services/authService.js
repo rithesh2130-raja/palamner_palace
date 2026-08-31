@@ -40,6 +40,10 @@ export const authService = {
   async resetPassword(token, newPassword) {
     return apiClient.post('/auth/reset-password', { token, newPassword });
   },
+
+  async changePassword(data) {
+    return apiClient.post('/auth/change-password', data);
+  },
 };
 
 export default authService;

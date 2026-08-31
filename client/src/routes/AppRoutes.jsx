@@ -51,6 +51,10 @@ export const AppRoutes = () => {
         <Route path="orders" element={<PlaceholderPage title="Customer Order History" dayPlanned="Day 8" />} />
         <Route path="orders/:orderId" element={<PlaceholderPage title="Order Tracking & Invoice" dayPlanned="Day 8" />} />
         <Route path="account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+        <Route path="account/*" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+        <Route path="account/profile" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+        <Route path="account/addresses" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+        <Route path="account/security" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
         <Route path="profile" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
         <Route path="wishlist" element={<WishlistPage />} />
         <Route path="creator/:username" element={<PlaceholderPage title="Public Creator Profile & Reels" dayPlanned="Day 10" />} />

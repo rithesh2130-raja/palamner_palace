@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { User, MapPin, ShoppingBag, Heart, Shield, LogOut, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import AddressesPage from './AddressesPage.jsx';
@@ -7,8 +7,18 @@ import SecurityPage from './SecurityPage.jsx';
 
 export const AccountPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'profile';
+
+  const pathTab = location.pathname.includes('/addresses')
+    ? 'addresses'
+    : location.pathname.includes('/security')
+    ? 'security'
+    : location.pathname.includes('/profile')
+    ? 'profile'
+    : null;
+
+  const activeTab = searchParams.get('tab') || pathTab || 'profile';
 
   const { user, logout, updateProfile } = useAuth();
 
@@ -21,7 +31,7 @@ export const AccountPage = () => {
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleTabChange = (tab) => {
-    setSearchParams({ tab });
+    navigate(`/account/${tab}`);
   };
 
   const handleProfileSave = async (e) => {

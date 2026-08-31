@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Shield, Lock, Key, Smartphone, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { authService } from '../../services/authService.js';
 
 export const SecurityPage = () => {
   const { user } = useAuth();
@@ -33,16 +34,14 @@ export const SecurityPage = () => {
     setMessage('');
 
     try {
-      // Security password update foundation
-      setTimeout(() => {
-        setMessage('Password updated successfully.');
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setLoading(false);
-      }, 600);
+      const res = await authService.changePassword({ currentPassword, newPassword });
+      setMessage(res?.message || 'Password updated successfully.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
     } catch (err) {
       setError(err.message || 'Failed to update password.');
+    } finally {
       setLoading(false);
     }
   };
