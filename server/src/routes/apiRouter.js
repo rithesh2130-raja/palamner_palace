@@ -10,6 +10,8 @@ import wishlistRoutes from './wishlistRoutes.js';
 import authRoutes from './authRoutes.js';
 import userRoutes from './userRoutes.js';
 import addressRoutes from './addressRoutes.js';
+import checkoutRoutes from './checkoutRoutes.js';
+import orderRoutes from './orderRoutes.js';
 
 const apiRouter = Router();
 
@@ -28,6 +30,8 @@ apiRouter.use('/reels', reelRoutes);
 apiRouter.use('/advertisements', advertisementRoutes);
 apiRouter.use('/cart', cartRoutes);
 apiRouter.use('/wishlist', wishlistRoutes);
+apiRouter.use('/checkout', checkoutRoutes);
+apiRouter.use('/orders', orderRoutes);
 
 // AI Reel Studio Endpoints (/api/v1/ai)
 apiRouter.use('/ai', aiVideoRoutes);

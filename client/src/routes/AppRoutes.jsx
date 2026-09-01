@@ -14,6 +14,8 @@ import AdminDashboardPage from '../pages/admin/AdminDashboardPage.jsx';
 import ProductList from '../pages/admin/products/ProductList';
 import ProductCreate from '../pages/admin/products/ProductCreate';
 import ProductEdit from '../pages/admin/products/ProductEdit';
+import AdminOrdersPage from '../pages/admin/orders/AdminOrdersPage.jsx';
+import AdminOrderDetailsPage from '../pages/admin/orders/AdminOrderDetailsPage.jsx';
 
 import AIStudioPage from '../pages/creator/AIStudioPage.jsx';
 import AdminAIPage from '../pages/admin/AdminAIPage.jsx';
@@ -25,6 +27,10 @@ import { AdminRoute, CreatorRoute } from '../components/common/RoleRoutes.jsx';
 
 import CartPage from '../pages/customer/CartPage.jsx';
 import WishlistPage from '../pages/customer/WishlistPage.jsx';
+import CheckoutPage from '../pages/checkout/CheckoutPage.jsx';
+import OrdersPage from '../pages/customer/OrdersPage.jsx';
+import OrderDetailsPage from '../pages/orders/OrderDetailsPage.jsx';
+import OrderConfirmationPage from '../pages/orders/OrderConfirmationPage.jsx';
 
 import LoginPage from '../pages/auth/LoginPage.jsx';
 import RegisterPage from '../pages/auth/RegisterPage.jsx';
@@ -47,13 +53,15 @@ export const AppRoutes = () => {
         <Route path="reels" element={<ReelsPage />} />
         <Route path="reels/:reelId" element={<ReelsPage />} />
         <Route path="cart" element={<CartPage />} />
-        <Route path="checkout" element={<PlaceholderPage title="Checkout & Payment Gateway" dayPlanned="Day 8" />} />
-        <Route path="orders" element={<PlaceholderPage title="Customer Order History" dayPlanned="Day 8" />} />
-        <Route path="orders/:orderId" element={<PlaceholderPage title="Order Tracking & Invoice" dayPlanned="Day 8" />} />
+        <Route path="checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+        <Route path="order-confirmation/:orderId" element={<ProtectedRoute><OrderConfirmationPage /></ProtectedRoute>} />
+        <Route path="orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
+        <Route path="orders/:orderId" element={<ProtectedRoute><OrderDetailsPage /></ProtectedRoute>} />
         <Route path="account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
         <Route path="account/*" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
         <Route path="account/profile" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
         <Route path="account/addresses" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+        <Route path="account/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
         <Route path="account/security" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
         <Route path="profile" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
         <Route path="wishlist" element={<WishlistPage />} />
@@ -83,7 +91,8 @@ export const AppRoutes = () => {
         <Route path="products/:id/edit" element={<ProductEdit />} />
         <Route path="categories" element={<PlaceholderPage title="Admin Category Hierarchy Manager" dayPlanned="Day 17" />} />
         <Route path="inventory" element={<PlaceholderPage title="Admin Warehouse & Inventory Control" dayPlanned="Day 17" />} />
-        <Route path="orders" element={<PlaceholderPage title="Admin Order Fulfillment & Logistics" dayPlanned="Day 17" />} />
+        <Route path="orders" element={<AdminOrdersPage />} />
+        <Route path="orders/:orderId" element={<AdminOrderDetailsPage />} />
         <Route path="customers" element={<PlaceholderPage title="Admin Customer Relationship Manager" dayPlanned="Day 17" />} />
         <Route path="sellers" element={<PlaceholderPage title="Admin Seller Onboarding & Payouts" dayPlanned="Day 17" />} />
         <Route path="creators" element={<PlaceholderPage title="Admin Creator Verification & Badging" dayPlanned="Day 17" />} />
